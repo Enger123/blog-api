@@ -1,5 +1,6 @@
 from fastapi import HTTPException
-from schemas.user import UserCreate, UserResponse
+from typing import List
+from schemas.user import UserCreate, UserResponse, UserUpdate
 from app.database import Session
 from models.user_model import User
 from datetime import datetime
@@ -18,7 +19,39 @@ def add_user(newuser: UserCreate):
         session.add(user)
         session.commit()
         session.refresh(user)
-        return UserResponse(id=user.id, username=user.username, created_at=user.created_at)
+        return UserResponse.model_validate(user)
 
-def profile(current_user):
-    return current_user
+def get_users() -> List[UserResponse]:
+    with Session() as session:
+        users = session.query(User).all()
+        return [UserResponse.model_validate(user)
+                for user in users]
+
+def get_user_id(id: int) -> UserResponse:
+    with Session() as session:
+        user = session.query(User).filter_by(id=id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail='User not found')
+        return UserResponse.model_validate(user)
+
+def change_user(creds: UserUpdate, current_user) -> UserResponse:
+    with Session() as session:
+        user_to_change = session.query(User).filter_by(id=current_user.id).first()
+        if not user_to_change:
+            raise HTTPException(status_code=404, detail='User not found')
+        if creds.username is not None:
+            user_to_change.username = creds.username
+        if creds.password is not None:
+            user_to_change.hashed_password = hash_password(creds.password)
+        session.commit()
+        return UserResponse.model_validate(user_to_change)
+
+def delete_user(current_user) -> dict:
+    with Session() as session:
+        user_to_del = session.query(User).filter_by(id=current_user.id).first()
+        if not user_to_del:
+            raise HTTPException(status_code=404, detail='Use not found')
+        session.delete(user_to_del)
+        session.commit()
+        return {'message': 'deleted'}
+
