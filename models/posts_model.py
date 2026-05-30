@@ -13,4 +13,7 @@ class Post(BaseModel):
     created_at: Mapped[datetime]
 
     def __repr__(self):
-        return f"<id={self.id}, title={self.title}, content={self.content}, user_id={self.user_id}, created_at={self.created_at}"
+        return f"<id={self.id}, title={self.title}, content={self.content}, user_id={self.user_id}, created_at={self.created_at}>"
+
+from models.user_model import User
+from models.comments_model import Comment
