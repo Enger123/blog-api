@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from schemas.post import PostCreate, PostResponse, PostUpdate
+from schemas.post import PostCreate, PostResponse, PostUpdate, AuthorSchema
 from app.database import Session
 from models.posts_model import Post
 from datetime import datetime
@@ -19,9 +19,9 @@ def add_post(newpost: PostCreate, current_user) -> PostResponse:
                             title=post.title,
                             content=post.content,
                             created_at=post.created_at,
-                            author={'id': post.user.id,
-                                    'username': post.user.username
-                                    }
+                            user=AuthorSchema(id=post.user.id,
+                                                username=post.user.username
+                                                )
                             )
 
 def get_posts() -> List[PostResponse]:
