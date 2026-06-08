@@ -1,9 +1,9 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from datetime import datetime
 from schemas.post import PostInfo, AuthorSchema
 
 class CommentCreate(BaseModel):
-    text: str
+    text: str = Field(min_length=1, max_length=100)
 
 class CommentResponse(BaseModel):
     id: int
@@ -11,7 +11,6 @@ class CommentResponse(BaseModel):
     user: AuthorSchema
     post: PostInfo
     created_at: datetime
-    model_config = {'from_attributes': True}
 
 class CommentUpdate(BaseModel):
     text: str | None = None

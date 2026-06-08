@@ -10,6 +10,7 @@ class Post(BaseModel):
     user_id: Mapped[int] = mapped_column(ForeignKey('users.id'))
     user: Mapped['User'] = relationship(back_populates='posts')
     comments: Mapped[list['Comment']] = relationship(back_populates='post')
+    likes: Mapped[list['Like']] = relationship(back_populates='post')
     created_at: Mapped[datetime]
 
     def __repr__(self):
@@ -17,3 +18,4 @@ class Post(BaseModel):
 
 from models.user_model import User
 from models.comments_model import Comment
+from models.likes_model import Like

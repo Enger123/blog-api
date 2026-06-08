@@ -15,7 +15,7 @@ def add_post(newpost: PostCreate, current_user = Depends(get_current_user)) -> P
 def get_posts(skip: int = 0, limit: int = 10, title: str = None, sort: str = 'asc') -> List[PostResponse]:
     return posts.get_posts(skip, limit, title, sort)
 
-@router.get("/post/{id}", response_model=PostResponse)
+@router.get("/posts/{id}", response_model=PostResponse)
 def get_post_id(id: int) -> PostResponse:
     return posts.get_post_id(id)
 
@@ -30,3 +30,7 @@ def delete_post(id: int, current_user=Depends(get_current_user)) -> dict:
 @router.get("/me/posts", response_model=List[PostResponse])
 def my_posts(current_user=Depends(get_current_user)) -> List[PostResponse]:
     return posts.my_posts(current_user)
+
+@router.get("/users/{user_id}/posts", response_model=List[PostResponse])
+def user_id_posts(user_id: int) -> List[PostResponse]:
+    return posts.user_id_posts(user_id)

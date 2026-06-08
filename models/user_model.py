@@ -9,10 +9,11 @@ class User(BaseModel):
     created_at: Mapped[datetime]
     posts: Mapped[list['Post']] = relationship(back_populates='user')
     comments: Mapped[list['Comment']] = relationship(back_populates='user')
-
+    likes: Mapped[list['Like']] = relationship(back_populates='user')
     def __repr__(self):
         return f"<id={self.id}, username={self.username}, hashed_password={self.hashed_password}, created_at={self.created_at}>"
 
 
 from models.posts_model import Post
 from models.comments_model import Comment
+from models.likes_model import Like

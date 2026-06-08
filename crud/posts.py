@@ -11,11 +11,26 @@ def post_returning(post):
                         title=post.title,
                         content=post.content,
                         comments_count=len(post.comments),
+                        likes_count=len(post.likes),
                         created_at=post.created_at,
                         user=AuthorSchema(id=post.user.id,
                                           username=post.user.username
                                           )
                         )
+
+def posts_returning(posts):
+    return [PostResponse(
+        id=post.id,
+        title=post.title,
+        content=post.content,
+        comments_count=len(post.comments),
+        likes_count=len(post.likes),
+        created_at=post.created_at,
+        user=AuthorSchema(id=post.user.id,
+                          username=post.user.username)
+    ) for post in posts
+    ]
+
 
 def add_post(newpost: PostCreate, current_user) -> PostResponse:
     with Session() as session:
@@ -39,17 +54,7 @@ def get_posts(skip: int = 0, limit: int = 10, title: str = None, sort: str = 'ne
         elif sort == 'old':
             query = query.order_by(Post.created_at)
         posts = query.offset(skip).limit(limit).all()
-        return [PostResponse(
-            id = post.id,
-            title=post.title,
-            content=post.content,
-            comments_count=len(post.comments),
-            created_at=post.created_at,
-            user=AuthorSchema(id=post.user.id,
-                              username=post.user.username)
-        )
-            for post in posts
-        ]
+        return posts_returning(posts)
 
 def get_post_id(id: int) -> PostResponse:
     with Session() as session:
@@ -83,13 +88,12 @@ def my_posts(current_user) -> List[PostResponse]:
     with Session() as session:
         our_user = session.query(User).filter_by(id=current_user.id).first()
         posts=our_user.posts
-        return [PostResponse(
-            id=post.id,
-            title=post.title,
-            content=post.content,
-            comments_count=len(post.comments),
-            created_at=post.created_at,
-            user=AuthorSchema(id=post.user.id,
-                              username=post.user.username)
-        ) for post in posts
-        ]
+        return posts_returning(posts)
+
+def user_id_posts(user_id: int) -> List[PostResponse]:
+    with Session() as session:
+        user = session.query(User).filter_by(id=user_id).first()
+        if not user:
+            raise HTTPException(status_code=404, detail='User not found')
+        posts = user.posts
+        return posts_returning(posts)
