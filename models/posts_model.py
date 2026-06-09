@@ -3,6 +3,7 @@ from sqlalchemy.orm import relationship, mapped_column, Mapped
 from sqlalchemy import ForeignKey
 from datetime import datetime
 
+
 class Post(BaseModel):
     __tablename__ = 'posts'
     title: Mapped[str]
@@ -11,6 +12,8 @@ class Post(BaseModel):
     user: Mapped['User'] = relationship(back_populates='posts')
     comments: Mapped[list['Comment']] = relationship(back_populates='post')
     likes: Mapped[list['Like']] = relationship(back_populates='post')
+    tags_posts: Mapped[list['TagPost']] = relationship(back_populates='post')
+
     created_at: Mapped[datetime]
 
     def __repr__(self):
@@ -19,3 +22,5 @@ class Post(BaseModel):
 from models.user_model import User
 from models.comments_model import Comment
 from models.likes_model import Like
+from models.tags_model import Tag
+from models.tags_posts_model import TagPost
