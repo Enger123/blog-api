@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from fastapi.params import Depends
-
 from auth.jwt import get_current_user
 from crud import tags
 from schemas.tag_post import TagPostResponse

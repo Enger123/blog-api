@@ -7,6 +7,14 @@ from schemas.tags import TagResponse, TagCreate
 from typing import List
 from schemas.tag_post import TagPostResponse
 
+def post_404(post):
+    if not post:
+        raise HTTPException(status_code=404, detail='Post not found')
+
+def tag_post_404(tag_post):
+    if not tag_post:
+        raise HTTPException(status_code=404, detail='Tags not found')
+
 def create_tag(newtag: TagCreate):
     with Session() as session:
         tag = Tag(name=newtag.name)
@@ -27,11 +35,9 @@ def get_tags() -> List[TagResponse]:
 def get_post_tags(post_id: int):
     with Session() as session:
         post = session.query(Post).filter_by(id=post_id).first()
-        if not post:
-            raise HTTPException(status_code=404, detail='Post not found')
+        post_404(post)
         tag_post = session.query(TagPost).filter_by(post_id=post_id).all()
-        if not tag_post:
-            raise HTTPException(status_code=404, detail='Tags not found')
+        tag_post_404(tag_post)
         return [TagPostResponse(id=t.id,
                             tag_id=t.tag.id,
                             post_id=t.post_id,
@@ -42,8 +48,7 @@ def get_post_tags(post_id: int):
 def add_post_tags(post_id: int, tag_id: int, current_user):
     with Session() as session:
         post = session.query(Post).filter_by(id=post_id).first()
-        if not post:
-            raise HTTPException(status_code=404, detail='Post not found')
+        post_404(post)
         if post.user_id != current_user.id:
             raise HTTPException(status_code=403, detail='You are not the owner of this post')
         tag = session.query(Tag).filter_by(id=tag_id).first()
@@ -66,13 +71,11 @@ def add_post_tags(post_id: int, tag_id: int, current_user):
 def delete_post_tags(post_id: int, tag_id: int, current_user) -> dict:
     with Session() as session:
         post = session.query(Post).filter_by(id=post_id).first()
-        if not post:
-            raise HTTPException(status_code=404, detail='Post not found')
+        post_404(post)
         if post.user_id != current_user.id:
             raise HTTPException(status_code=403, detail='You are not the owner of this post')
-        post_tag = session.query(TagPost).filter_by(post_id=post_id, tag_id=tag_id).first()
-        if not post_tag:
-            raise HTTPException(status_code=404, detail='Tag not found in the post')
-        session.delete(post_tag)
+        tag_post = session.query(TagPost).filter_by(post_id=post_id, tag_id=tag_id).first()
+        tag_post_404(tag_post)
+        session.delete(tag_post)
         session.commit()
         return {'message': 'Tag deleted in the post'}
