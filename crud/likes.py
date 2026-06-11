@@ -1,11 +1,25 @@
 from fastapi import HTTPException
-from schemas.post import PostResponse, AuthorSchema
+from schemas.post import PostResponse, AuthorSchema, PostInfo
 from models import Like, Post, User
 from app.database import Session
 from datetime import datetime
 
 from schemas.user import UserResponse
+from schemas.like import LikeResponse
 
+def get_likes_username(username: str):
+    with Session() as session:
+        likes = session.query(Like).join(User).filter(User.username.contains(username)).all()
+        if not likes:
+            raise HTTPException(status_code=404, detail='Likes not found from this user')
+        return [LikeResponse(id=l.id,
+                             user=AuthorSchema(id=l.user_id,
+                                               username=l.user.username
+                                               ),
+                             post=PostInfo(id=l.post_id,
+                                           title=l.post.title)
+                             )
+                for l in likes]
 
 def add_post_like(post_id: int, current_user):
     with Session() as session:

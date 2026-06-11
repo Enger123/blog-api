@@ -5,6 +5,10 @@ from auth.jwt import get_current_user
 from crud import likes
 router = APIRouter()
 
+@router.get("/likes/{username}")
+def get_likes_username(username: str):
+    return likes.get_likes_username(username)
+
 @router.post("/posts/{post_id}/like")
 def add_post_like(post_id: int, current_user=Depends(get_current_user)):
     return likes.add_post_like(post_id, current_user)

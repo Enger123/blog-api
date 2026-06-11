@@ -7,6 +7,10 @@ from fastapi.params import Depends
 
 router = APIRouter()
 
+@router.get("/comments/user/{username}", response_model=List[CommentResponse])
+def get_comments_username(username: str) -> List[CommentResponse]:
+    return comments.get_comments_username(username)
+
 @router.post("/posts/{id}/comments", response_model=CommentResponse)
 def add_post_comment(id: int, newcomment: CommentCreate, current_user=Depends(get_current_user)) -> CommentResponse:
     return comments.add_post_comment(id, newcomment, current_user)

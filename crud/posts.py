@@ -6,6 +6,10 @@ from models.user_model import User
 from datetime import datetime
 from typing import List
 
+def post_404(post):
+    if not post:
+        raise HTTPException(status_code=404, detail='Post/posts not found')
+
 def post_returning(post):
     return PostResponse(id=post.id,
                         title=post.title,
@@ -55,6 +59,14 @@ def get_posts(skip: int = 0, limit: int = 10, title: str = None, sort: str = 'ne
             query = query.order_by(Post.created_at)
         posts = query.offset(skip).limit(limit).all()
         return posts_returning(posts)
+
+def get_posts_username(username : str) -> List[PostResponse]:
+    with Session() as session:
+        posts = session.query(Post).join(User).filter(User.username.contains(username)).all()
+        if not posts:
+            post_404(posts)
+        return posts_returning(posts)
+
 
 def get_post_id(id: int) -> PostResponse:
     with Session() as session:

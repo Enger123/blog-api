@@ -3,8 +3,8 @@ from datetime import datetime
 from schemas.comment import CommentCreate, CommentResponse, CommentUpdate
 from typing import List
 from app.database import Session
-from models.comments_model import Comment, Post
 from schemas.post import AuthorSchema, PostInfo
+from models import Comment, Post, User
 
 def com_returning(comment):
     return CommentResponse(
@@ -20,6 +20,20 @@ def com_returning(comment):
         ),
         created_at=comment.created_at
     )
+
+def get_comments_username(username: str) -> List[CommentResponse]:
+    with Session() as session:
+        comments = session.query(Comment).join(User).filter(User.username.contains(username)).all()
+        if not comments:
+            raise HTTPException(status_code=404, detail='Comments not found from this user')
+        return [CommentResponse(id=c.id,
+                                text=c.text,
+                                user=AuthorSchema(id=c.user.id,
+                                                  username=c.user.username),
+                                post=PostInfo(id=c.post.id,
+                                              title=c.post.title),
+                                created_at=c.created_at)
+                for c in comments]
 
 def add_post_comment(id: int, newcomment: CommentCreate, current_user) -> CommentResponse:
     with Session() as session:

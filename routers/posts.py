@@ -15,6 +15,10 @@ def add_post(newpost: PostCreate, current_user = Depends(get_current_user)) -> P
 def get_posts(skip: int = 0, limit: int = 10, title: str = None, sort: str = 'asc') -> List[PostResponse]:
     return posts.get_posts(skip, limit, title, sort)
 
+@router.get("/posts/by-usernane/{username}", response_model=List[PostResponse])
+def get_posts_username(username : str) -> List[PostResponse]:
+    return posts.get_posts_username(username)
+
 @router.get("/posts/{id}", response_model=PostResponse)
 def get_post_id(id: int) -> PostResponse:
     return posts.get_post_id(id)

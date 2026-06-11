@@ -6,10 +6,7 @@ from models.tags_model import Tag
 from schemas.tags import TagResponse, TagCreate
 from typing import List
 from schemas.tag_post import TagPostResponse
-
-def post_404(post):
-    if not post:
-        raise HTTPException(status_code=404, detail='Post not found')
+from crud.posts import post_404
 
 def tag_post_404(tag_post):
     if not tag_post:
