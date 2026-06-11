@@ -1,8 +1,6 @@
 from fastapi import HTTPException
 from app.database import Session
-from models import Post
-from models.tags_posts_model import TagPost
-from models.tags_model import Tag
+from models import Post, TagPost, User
 from schemas.tags import TagResponse, TagCreate
 from typing import List
 from schemas.tag_post import TagPostResponse
@@ -11,6 +9,14 @@ from crud.posts import post_404
 def tag_post_404(tag_post):
     if not tag_post:
         raise HTTPException(status_code=404, detail='Tags not found')
+
+def get_tags_inpost_username(username: str) -> List[TagResponse]:
+    with Session() as session:
+        tags = session.query(TagPost).join(User).filter(User.username.contains(username))
+        print(tags)
+        tag_post_404(tags)
+        return [TagResponse(id=tag.id,
+                            name=tag.name) for tag in tags]
 
 def create_tag(newtag: TagCreate):
     with Session() as session:

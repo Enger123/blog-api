@@ -8,6 +8,10 @@ from typing import List
 
 router = APIRouter()
 
+@router.get("/tags/user/{username}", response_model=List[TagResponse])
+def get_tags_inpost_username(username: str) -> List[TagResponse]:
+    return tags.get_tags_inpost_username(username)
+
 @router.post("/tags", response_model=TagResponse)
 def create_tag(newtag: TagCreate) -> TagResponse:
     return tags.create_tag(newtag)
