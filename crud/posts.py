@@ -1,8 +1,9 @@
 from fastapi import HTTPException
+
+from models import TagPost, Post, User, Tag
 from schemas.post import PostCreate, PostResponse, PostUpdate, AuthorSchema
 from app.database import Session
-from models.posts_model import Post
-from models.user_model import User
+
 from datetime import datetime
 from typing import List
 
@@ -35,6 +36,14 @@ def posts_returning(posts):
     ) for post in posts
     ]
 
+def get_posts_tag(tag: str) -> List[PostResponse]:
+    with Session() as session:
+        posts = session.query(Post)\
+        .join(TagPost)\
+        .join(Tag)\
+        .filter(Tag.name==tag).all()
+        post_404(posts)
+        return posts_returning(posts)
 
 def add_post(newpost: PostCreate, current_user) -> PostResponse:
     with Session() as session:

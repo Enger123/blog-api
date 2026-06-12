@@ -7,6 +7,10 @@ from typing import List
 
 router = APIRouter()
 
+@router.get("/posts/tag/{tag}", response_model=List[PostResponse])
+def get_posts_tag(tag: str) -> List[PostResponse]:
+    return posts.get_posts_tag(tag)
+
 @router.post("/posts", response_model=PostResponse)
 def add_post(newpost: PostCreate, current_user = Depends(get_current_user)) -> PostResponse:
     return posts.add_post(newpost, current_user)

@@ -23,7 +23,10 @@ def com_returning(comment):
 
 def get_comments_username(username: str) -> List[CommentResponse]:
     with Session() as session:
-        comments = session.query(Comment).join(User).filter(User.username.contains(username)).all()
+        comments = session.query(Comment)\
+        .join(Post)\
+        .join(User)\
+        .filter(User.username.contains(username)).all()
         if not comments:
             raise HTTPException(status_code=404, detail='Comments not found from this user')
         return [CommentResponse(id=c.id,

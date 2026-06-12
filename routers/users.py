@@ -8,6 +8,10 @@ from fastapi.params import Depends
 from typing import List
 router =  APIRouter()
 
+@router.get("/users/likedpost/{title}", response_model=List[UserResponse])
+def get_users_likedpost(title: str) -> List[UserResponse]:
+    return users.get_users_likedpost(title)
+
 @router.post("/users")
 def add_user(user: UserCreate):
     return users.add_user(user)

@@ -1,6 +1,6 @@
 from fastapi import HTTPException
 from app.database import Session
-from models import Post, TagPost, User
+from models import Post, TagPost, User, Tag, Like
 from schemas.tags import TagResponse, TagCreate
 from typing import List
 from schemas.tag_post import TagPostResponse
@@ -10,11 +10,26 @@ def tag_post_404(tag_post):
     if not tag_post:
         raise HTTPException(status_code=404, detail='Tags not found')
 
+def get_tags_postliked(username: str) -> List[TagResponse]:
+    with Session() as session:
+        tags = session.query(Tag)\
+        .join(TagPost)\
+        .join(Post)\
+        .join(Like)\
+        .join(User)\
+        .filter(User.username==username).all()
+        if not tags:
+            raise HTTPException(status_code=404,
+                                detail=f'Tags not found in the posts liked by {username}')
+        return [TagResponse(id=tag.id, name=tag.name) for tag in tags]
+
 def get_tags_inpost_username(username: str) -> List[TagResponse]:
     with Session() as session:
-        tags = session.query(TagPost).join(User).filter(User.username.contains(username))
-        print(tags)
-        tag_post_404(tags)
+        tags = session.query(Tag)\
+            .join(TagPost)\
+            .join(Post)\
+            .join(User)\
+            .filter(User.username.contains(username)).all()
         return [TagResponse(id=tag.id,
                             name=tag.name) for tag in tags]
 
@@ -30,6 +45,7 @@ def create_tag(newtag: TagCreate):
 def get_tags() -> List[TagResponse]:
     with Session() as session:
         tags = session.query(Tag).all()
+        print(tags)
         if not tags:
             raise HTTPException(status_code=404, detail='Tags not found')
         return [TagResponse(id=tag.id,

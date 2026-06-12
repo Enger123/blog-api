@@ -2,9 +2,19 @@ from fastapi import HTTPException
 from typing import List
 from schemas.user import UserCreate, UserResponse, UserUpdate
 from app.database import Session
-from models.user_model import User
+from models import User, Post, Like
 from datetime import datetime
 from auth.jwt import hash_password
+
+def get_users_likedpost(title: str) -> List[UserResponse]:
+    with Session() as session:
+        users = session.query(User)\
+        .join(Like)\
+        .join(Post)\
+        .filter(Post.title.contains(title)).all()
+        if not users:
+            raise HTTPException(status_code=404, detail='Users not found who liked this post')
+        return [UserResponse.model_validate(user) for user in users]
 
 def add_user(newuser: UserCreate):
     with Session() as session:
@@ -54,4 +64,8 @@ def delete_user(current_user) -> dict:
         session.delete(user_to_del)
         session.commit()
         return {'message': 'deleted'}
+
+
+
+
 
