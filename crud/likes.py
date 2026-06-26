@@ -1,7 +1,6 @@
 from fastapi import HTTPException
 from schemas.post import PostResponse, AuthorSchema, PostInfo
 from models import Like, Post, User
-from app.database import Session
 from schemas.user import UserResponse
 from schemas.like import LikeResponse
 

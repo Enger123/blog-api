@@ -1,5 +1,4 @@
 from fastapi import HTTPException
-from app.database import Session
 from models import Post, TagPost, User, Tag, Like
 from schemas.tags import TagResponse, TagCreate
 from typing import List

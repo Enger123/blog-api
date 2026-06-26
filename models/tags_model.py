@@ -1,7 +1,5 @@
-from sqlalchemy import ForeignKey
-
 from app.database import BaseModel
-from sqlalchemy.orm import Mapped, mapped_column, relationship
+from sqlalchemy.orm import Mapped, relationship
 
 
 class Tag(BaseModel):

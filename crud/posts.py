@@ -1,5 +1,4 @@
 from fastapi import HTTPException
-
 from models import TagPost, Post, User, Tag
 from schemas.post import PostCreate, PostResponse, PostUpdate, AuthorSchema
 from app.database import Session

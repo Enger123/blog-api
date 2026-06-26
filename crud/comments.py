@@ -2,7 +2,6 @@ from fastapi import HTTPException
 from datetime import datetime
 from schemas.comment import CommentCreate, CommentResponse, CommentUpdate
 from typing import List
-from app.database import Session
 from schemas.post import AuthorSchema, PostInfo
 from models import Comment, Post, User
 

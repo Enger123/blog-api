@@ -1,7 +1,6 @@
 from fastapi import HTTPException
 from typing import List
 from schemas.user import UserCreate, UserResponse, UserUpdate
-from app.database import Session
 from models import User, Post, Like
 from datetime import datetime
 from auth.jwt import hash_password

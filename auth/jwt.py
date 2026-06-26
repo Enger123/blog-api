@@ -3,7 +3,6 @@ from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from typing_extensions import deprecated
 from datetime import timedelta, datetime
 
 from app.database import Session

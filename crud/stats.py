@@ -1,6 +1,3 @@
-from pydantic import with_config
-
-from app.database import Session
 from models import Post, User, Comment, Like, Tag, TagPost
 from sqlalchemy import func
 from sqlalchemy.orm import joinedload, selectinload
@@ -142,7 +139,9 @@ def stats_posts3_likes(db):
         ]
 
 def stats_users_posts_comments(db):
-    user_st = db.query(User.username, func.count(Post.id), func.count(Comment.id))\
+    user_st = db.query(User.username,
+                       func.count(Post.id),
+                       func.count(Comment.id))\
         .join(Post)\
         .join(Comment)\
         .group_by(User.id).all()
@@ -155,7 +154,7 @@ def stats_users_posts_comments(db):
             } for user in user_st
         ]
 
-def stats_users_posts_moretwo():
+def stats_users_posts_moretwo(db):
     users = db.query(User.username, func.count(Post.id))\
         .outerjoin(Post)\
         .group_by(User.id)\
@@ -244,7 +243,7 @@ def stats_posts_maxlikes(db):
         .group_by(Like.post_id).subquery()
                       )
 
-    max_likes = session.query(
+    max_likes = db.query(
             func.max(
                 like_stats.c.likes_counter)
         ).scalar_subquery()
