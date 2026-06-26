@@ -2,17 +2,14 @@ from fastapi import HTTPException
 from schemas.post import PostResponse, AuthorSchema, PostInfo
 from models import Like, Post, User
 from app.database import Session
-from datetime import datetime
-
 from schemas.user import UserResponse
 from schemas.like import LikeResponse
 
-def get_likes_username(username: str):
-    with Session() as session:
-        likes = session.query(Like).join(User).filter(User.username.contains(username)).all()
-        if not likes:
-            raise HTTPException(status_code=404, detail='Likes not found from this user')
-        return [LikeResponse(id=l.id,
+def get_likes_username(username: str, db):
+    likes = db.query(Like).join(User).filter(User.username.contains(username)).all()
+    if not likes:
+        raise HTTPException(status_code=404, detail='Likes not found from this user')
+    return [LikeResponse(id=l.id,
                              user=AuthorSchema(id=l.user_id,
                                                username=l.user.username
                                                ),
@@ -21,21 +18,20 @@ def get_likes_username(username: str):
                              )
                 for l in likes]
 
-def add_post_like(post_id: int, current_user):
-    with Session() as session:
-        post = session.query(Post).filter_by(id=post_id).first()
-        if not post:
-            raise HTTPException(status_code=404, detail='Post not found')
+def add_post_like(post_id: int, current_user, db):
+    post = db.query(Post).filter_by(id=post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail='Post not found')
 
-        existing_like = session.query(Like).filter_by(user_id=current_user.id, post_id=post_id).first()
-        if existing_like:
-            raise HTTPException(status_code=400, detail='You already liked this post')
+    existing_like = db.query(Like).filter_by(user_id=current_user.id, post_id=post_id).first()
+    if existing_like:
+        raise HTTPException(status_code=400, detail='You already liked this post')
 
-        like = Like(user_id=current_user.id, post_id=post_id)
-        session.add(like)
-        session.commit()
-        session.refresh(like)
-        return PostResponse(id=post_id,
+    like = Like(user_id=current_user.id, post_id=post_id)
+    db.add(like)
+    db.commit()
+    db.refresh(like)
+    return PostResponse(id=post_id,
                             title=post.title,
                             content=post.content,
                             comments_count=len(post.comments),
@@ -44,32 +40,29 @@ def add_post_like(post_id: int, current_user):
                             user=AuthorSchema(id=post.user.id, username=post.user.username)
                             )
 
-def delete_post_like(post_id: int, current_user):
-    with Session() as session:
-        like = session.query(Like).filter_by(post_id=post_id, user_id=current_user.id).first()
-        if not like:
-            raise HTTPException(status_code=404, detail='Post not found')
-        session.delete(like)
-        session.commit()
-        return {'message': 'Лайк прибрано'}
+def delete_post_like(post_id: int, current_user, db):
+    like = db.query(Like).filter_by(post_id=post_id, user_id=current_user.id).first()
+    if not like:
+        raise HTTPException(status_code=404, detail='Post not found')
+    db.delete(like)
+    db.commit()
+    return {'message': 'Лайк прибрано'}
 
-def get_post_id_likes(post_id: int):
-    with Session() as session:
-        post = session.query(Post).filter_by(id=post_id).first()
-        if not post:
-            raise HTTPException(status_code=404, detail='Post not found')
-        likes = post.likes
-        return [UserResponse(id=like.user.id,
+def get_post_id_likes(post_id: int, db):
+    post = db.query(Post).filter_by(id=post_id).first()
+    if not post:
+        raise HTTPException(status_code=404, detail='Post not found')
+    likes = post.likes
+    return [UserResponse(id=like.user.id,
                              username=like.user.username,
                              created_at=like.user.created_at
                              ) for like in likes]
 
-def get_users_id_likes(user_id: int):
-    with Session() as session:
-        user = session.query(User).filter_by(id=user_id).first()
-        if not user:
-            raise HTTPException(status_code=404, detail='User not found')
-        return [PostResponse(id = like.post.id,
+def get_users_id_likes(user_id: int, db):
+    user = db.query(User).filter_by(id=user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail='User not found')
+    return [PostResponse(id = like.post.id,
                              title=like.post.title,
                              content=like.post.content,
                              comments_count=len(like.post.comments),

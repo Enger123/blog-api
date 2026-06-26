@@ -1,28 +1,27 @@
 from fastapi import APIRouter
 from typing import List
 from crud import comments
-from auth.jwt import get_current_user
+from app.dependencies import CurrentUser, DBSession
 from schemas.comment import CommentCreate, CommentResponse, CommentUpdate
-from fastapi.params import Depends
 
 router = APIRouter()
 
 @router.get("/comments/user/{username}", response_model=List[CommentResponse])
-def get_comments_username(username: str) -> List[CommentResponse]:
-    return comments.get_comments_username(username)
+def get_comments_username(username: str, db: DBSession) -> List[CommentResponse]:
+    return comments.get_comments_username(username, db)
 
 @router.post("/posts/{id}/comments", response_model=CommentResponse)
-def add_post_comment(id: int, newcomment: CommentCreate, current_user=Depends(get_current_user)) -> CommentResponse:
-    return comments.add_post_comment(id, newcomment, current_user)
+def add_post_comment(id: int, newcomment: CommentCreate, current_user: CurrentUser, db: DBSession) -> CommentResponse:
+    return comments.add_post_comment(id, newcomment, current_user, db)
 
 @router.get("/posts/{post_id}/comments", response_model=List[CommentResponse])
-def get_post_comments(post_id: int) -> List[CommentResponse]:
-    return comments.get_post_comments(post_id)
+def get_post_comments(post_id: int, db: DBSession) -> List[CommentResponse]:
+    return comments.get_post_comments(post_id, db)
 
 @router.delete("/comments/{comment_id}")
-def delete_com(comment_id: int, current_user=Depends(get_current_user)):
-    return comments.delete_com(comment_id, current_user)
+def delete_com(comment_id: int, current_user: CurrentUser, db: DBSession):
+    return comments.delete_com(comment_id, current_user, db)
 
 @router.put("/comments/{comment_id}")
-def change_com(comment_id: int, com: CommentUpdate, current_user=Depends(get_current_user)):
+def change_com(comment_id: int, com: CommentUpdate, current_user: CurrentUser):
     return comments.change_com(comment_id, com, current_user)

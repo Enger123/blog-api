@@ -25,3 +25,7 @@ class PostUpdate(BaseModel):
 class PostInfo(BaseModel):
     id: int
     title: str
+
+class PaginationParams(BaseModel):
+    limit: int = Field(5, ge = 3, le=100)
+    offset: int = Field(0)
