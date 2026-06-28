@@ -3,106 +3,106 @@ from crud import stats
 from app.dependencies import DBSession
 router = APIRouter()
 
-@router.get("/stats/posts-count")
+@router.get("/stats/posts-count", tags=['Stats'])
 def stats_posts(db: DBSession):
     return stats.stats_posts(db)
 
-@router.get("/stats/users")
+@router.get("/stats/users", tags=['Stats'])
 def stats_users(db: DBSession):
     return stats.stats_users(db)
 
-@router.get("/stats/users/maxid")
+@router.get("/stats/users/maxid", tags=['Stats'])
 def stats_user_id(db: DBSession):
     return stats.stats_user_id(db)
 
-@router.get("/stats/users/posts-count")
+@router.get("/stats/users/posts-count", tags=['Stats'])
 def stats_user_posts(db: DBSession):
     return stats.stats_user_posts(db)
 
-@router.get("/stats/users-maxposts")
+@router.get("/stats/users-maxposts", tags=['Stats'])
 def stats_user_maxposts(db: DBSession):
     return stats.stats_user_maxposts(db)
 
-@router.get("/stats/posts/comments")
+@router.get("/stats/posts/comments", tags=['Stats'])
 def stats_posts_comments(db: DBSession):
     return stats.stats_posts_comments(db)
 
-@router.get("/stats/posts/likes")
+@router.get("/stats/posts/likes", tags=['Stats'])
 def stats_posts_likes(db: DBSession):
     return stats.stats_posts_likes(db)
 
-@router.get("/stats/users-maxcomments")
+@router.get("/stats/users-maxcomments", tags=['Stats'])
 def stats_users_maxcomments(db: DBSession):
     return stats.stats_users_maxcomments(db)
 
-@router.get("/stats/tags")
+@router.get("/stats/tags", tags=['Stats'])
 def stats_tags(db: DBSession):
     return stats.stats_tags(db)
 
-@router.get("/stats/posts/tags")
+@router.get("/stats/posts/tags", tags=['Stats'])
 def stats_posts_tags(db: DBSession):
     return stats.stats_posts_tags(db)
 
-@router.get("/stats/tag/posts-count")
+@router.get("/stats/tag/posts-count", tags=['Stats'])
 def stats_tag_posts_count(db: DBSession):
     return stats.stats_tag_posts_count(db)
 
-@router.get("/stats/popular-tags")
+@router.get("/stats/popular-tags", tags=['Stats'])
 def stats_popular_tag(db: DBSession):
     return stats.stats_popular_tag(db)
 
-@router.get("/stats/posts3/likes")
+@router.get("/stats/posts3/likes", tags=['Stats'])
 def stats_posts3_likes(db: DBSession):
     return stats.stats_posts3_likes(db)
 
-@router.get("/stats/users/posts-comments")
+@router.get("/stats/users/posts-comments", tags=['Stats'])
 def stats_users_posts_comments(db: DBSession):
     return stats.stats_users_posts_comments(db)
 
-@router.get("/stats/users/postmoretwo")
+@router.get("/stats/users/postmoretwo", tags=['Stats'])
 def stats_users_posts_moretwo(db: DBSession):
     return stats.stats_users_posts_moretwo(db)
 
-@router.get("/stats/posts/commentsmore3")
+@router.get("/stats/posts/commentsmore3", tags=['Stats'])
 def stats_posts_comments_more3(db: DBSession):
     return stats.stats_posts_comments_more3(db)
 
-@router.get("/stats/posts/tagsmore2")
+@router.get("/stats/posts/tagsmore2", tags=['Stats'])
 def stats_posts_tags_more2(db: DBSession):
     return stats.stats_posts_tags_more2(db)
 
-@router.get("/stats/users/commentstop3")
+@router.get("/stats/users/commentstop3", tags=['Stats'])
 def stats_users_commentstop3(db: DBSession):
     return stats.stats_users_commentstop3(db)
 
-@router.get("/stats/users/minlikes")
+@router.get("/stats/users/minlikes", tags=['Stats'])
 def min_posts_user(db: DBSession):
     return stats.min_posts_user(db)
 
-@router.get("/stats/max/posts/users")
+@router.get("/stats/max/posts/users", tags=['Stats'])
 def stats_max_posts_users(db: DBSession):
     return stats.stats_max_posts_users(db)
 
-@router.get("/stats/posts/maxlikes")
+@router.get("/stats/posts/maxlikes", tags=['Stats'])
 def stats_posts_maxlikes(db: DBSession):
     return stats.stats_posts_maxlikes(db)
 
-@router.get("/stats/users/posts-more-avg")
+@router.get("/stats/users/posts-more-avg", tags=['Stats'])
 def stats_users_posts_more_avg(db: DBSession):
     return stats.stats_users_posts_more_avg(db)
 
-@router.get("/stats/posts/max-comments")
+@router.get("/stats/posts/max-comments", tags=['Stats'])
 def stats_posts_max_comments(db: DBSession):
     return stats.stats_posts_max_comments(db)
 
-@router.get("/stats/posts/more-avg")
+@router.get("/stats/posts/more-avg", tags=['Stats'])
 def stats_posts_moreavg(db: DBSession):
     return stats.stats_posts_moreavg(db)
 
-@router.get("/stats/comments/more-avg")
+@router.get("/stats/comments/more-avg", tags=['Stats'])
 def stats_comments_moreavg(db: DBSession):
     return stats.stats_comments_moreavg(db)
 
-@router.get("/test")
+@router.get("/test", tags=['Stats'])
 def test_joinedload(db: DBSession):
     return stats.test_joinedload(db)
