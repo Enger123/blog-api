@@ -1,9 +1,17 @@
-from fastapi import HTTPException
+from fastapi import HTTPException, UploadFile
 from models import TagPost, Post, User, Tag
 from schemas.post import PostCreate, PostResponse, PostUpdate, AuthorSchema
 from app.database import Session
 from datetime import datetime
 from typing import List
+from exceptions.errors import PostNotFound
+from pathlib import Path
+
+project_dir = Path(__file__).parent.parent
+uploads_dir = project_dir / 'uploads'
+uploads_dir.mkdir(exist_ok=True)
+posts_dir = uploads_dir / 'posts'
+posts_dir.mkdir(exist_ok=True)
 
 def post_404(post):
     if not post:
@@ -13,6 +21,7 @@ def post_returning(post):
     return PostResponse(id=post.id,
                         title=post.title,
                         content=post.content,
+                        user_id=post.user_id,
                         comments_count=len(post.comments),
                         likes_count=len(post.likes),
                         created_at=post.created_at,
@@ -26,6 +35,7 @@ def posts_returning(posts):
         id=post.id,
         title=post.title,
         content=post.content,
+        user_id=post.user_id,
         comments_count=len(post.comments),
         likes_count=len(post.likes),
         created_at=post.created_at,
@@ -53,6 +63,51 @@ def add_post(newpost: PostCreate, current_user, db) -> PostResponse:
     db.refresh(post)
     return post_returning(post)
 
+async def add_post_image(id: int, db, current_user, file: UploadFile):
+    path = Path(file.filename)
+    stem = path.stem
+    suffix = path.suffix
+    file_size = len(await file.read())
+    existing_post = db.query(Post).filter_by(id=id, user_id=current_user.id).first()
+    if not existing_post:
+        raise HTTPException(status_code=404, detail='Post not found')
+    if suffix not in ['.jpg', '.png', '.jpeg', '.webp']:
+        raise HTTPException(status_code=400,
+                            detail=f'You can not upload a \"{suffix}\" file')
+    if file_size > 3000000:
+        raise HTTPException(status_code=400,
+                            detail="Size of a given file can not be more that 3 mB")
+    if existing_post.image_path is not None:
+        old_file = Path(existing_post.image_path)
+        old_file.unlink()
+
+        existing_post.image_path = None
+    loc = posts_dir / file.filename
+    i = 1
+    while loc.exists():
+        new_filename = f"{stem}({i}){suffix}"
+        loc = posts_dir / new_filename
+        i += 1
+    existing_post.image_path = str(loc)
+    await file.seek(0)
+    content = await file.read()
+    with open(loc, 'wb') as f:
+        f.write(content)
+    db.commit()
+    return PostResponse(
+        id=existing_post.id,
+        title=existing_post.title,
+        content=existing_post.content,
+        user_id=current_user.id,
+        image_path=existing_post.image_path,
+        comments_count=len(existing_post.comments),
+        likes_count=len(existing_post.likes),
+        created_at=existing_post.created_at,
+        user=AuthorSchema(id=current_user.id,
+            username=existing_post.user.username
+                          )
+    )
+
 def get_posts(db,
               skip: int = 0,
               limit: int = 10,
@@ -78,7 +133,7 @@ def get_posts_username(username : str, db) -> List[PostResponse]:
 def get_post_id(id: int, db) -> PostResponse:
     post = db.query(Post).filter_by(id=id).first()
     if not post:
-        raise HTTPException(status_code=404, detail='Post not found')
+        raise PostNotFound
     return post_returning(post)
 
 def change_post(id: int,

@@ -13,6 +13,8 @@ class PostResponse(BaseModel):
     id: int
     title: str
     content: str
+    user_id: int
+    image_path: str | None = None
     comments_count: int
     likes_count: int
     created_at: datetime

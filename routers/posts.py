@@ -1,8 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, BackgroundTasks, UploadFile, File
 from schemas.post import PostResponse, PostCreate, PostUpdate
 from crud import posts
 from typing import List
 from app.dependencies import CurrentUser, DBSession, PaginationDep
+from app.background_tasks import add_post_log, delete_post_log, change_post_log
 
 router = APIRouter()
 
@@ -15,8 +16,18 @@ def get_posts_tag(tag: str, db: DBSession) -> List[PostResponse]:
 @router.post("/posts",
              response_model=PostResponse,
             tags=['Posts'])
-def add_post(newpost: PostCreate, current_user : CurrentUser, db: DBSession) -> PostResponse:
+def add_post(newpost: PostCreate,
+             current_user : CurrentUser,
+             db: DBSession,
+             back_tasks: BackgroundTasks) -> PostResponse:
+    back_tasks.add_task(add_post_log, newpost.title, current_user.username)
     return posts.add_post(newpost, current_user, db)
+
+@router.post("/posts/{id}/image")
+async def add_post_image(id: int, db: DBSession,
+                   current_user: CurrentUser,
+                   file: UploadFile = File()):
+    return await posts.add_post_image(id, db, current_user, file)
 
 @router.get("/posts",
             response_model=List[PostResponse],
@@ -45,12 +56,18 @@ def get_post_id(id: int, db: DBSession) -> PostResponse:
 def change_post(id: int,
                 changed_post: PostUpdate,
                 current_user: CurrentUser,
-                db: DBSession) -> PostResponse:
+                db: DBSession,
+                back_tasks: BackgroundTasks) -> PostResponse:
+    back_tasks.add_task(change_post_log, id, current_user.username)
     return posts.change_post(id, changed_post, current_user, db)
 
 @router.delete("/posts/{id}",
             tags=['Posts'])
-def delete_post(id: int, current_user: CurrentUser, db: DBSession) -> dict:
+def delete_post(id: int,
+                current_user: CurrentUser,
+                db: DBSession,
+                back_tasks: BackgroundTasks) -> dict:
+    back_tasks.add_task(delete_post_log, id, current_user.username)
     return posts.delete_post(id, current_user, db)
 
 @router.get("/me/posts",
