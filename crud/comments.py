@@ -22,7 +22,6 @@ def com_returning(comment):
 
 def get_comments_username(username: str, db) -> List[CommentResponse]:
     comments = db.query(Comment)\
-    .join(Post)\
     .join(User)\
     .filter(User.username.contains(username)).all()
     if not comments:

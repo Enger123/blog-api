@@ -22,6 +22,7 @@ def post_returning(post):
                         title=post.title,
                         content=post.content,
                         user_id=post.user_id,
+                        image_path=post.image_path,
                         comments_count=len(post.comments),
                         likes_count=len(post.likes),
                         created_at=post.created_at,
@@ -36,6 +37,7 @@ def posts_returning(posts):
         title=post.title,
         content=post.content,
         user_id=post.user_id,
+        image_path=post.image_path,
         comments_count=len(post.comments),
         likes_count=len(post.likes),
         created_at=post.created_at,
@@ -66,7 +68,7 @@ def add_post(newpost: PostCreate, current_user, db) -> PostResponse:
 async def add_post_image(id: int, db, current_user, file: UploadFile):
     path = Path(file.filename)
     stem = path.stem
-    suffix = path.suffix
+    suffix = path.suffix.lower()
     file_size = len(await file.read())
     existing_post = db.query(Post).filter_by(id=id, user_id=current_user.id).first()
     if not existing_post:
@@ -79,9 +81,8 @@ async def add_post_image(id: int, db, current_user, file: UploadFile):
                             detail="Size of a given file can not be more that 3 mB")
     if existing_post.image_path is not None:
         old_file = Path(existing_post.image_path)
-        old_file.unlink()
-
-        existing_post.image_path = None
+        if old_file.exists():
+            old_file.unlink()
     loc = posts_dir / file.filename
     i = 1
     while loc.exists():
@@ -154,15 +155,17 @@ def delete_post(id: int, current_user, db) -> dict:
     post = db.query(Post).filter_by(id=id, user_id=current_user.id).first()
     if not post:
         raise HTTPException(status_code=404, detail='Post not found')
+    file_to_del = Path(post.image_path)
+    if file_to_del:
+        file_to_del.unlink()
     db.delete(post)
     db.commit()
     return {'message': 'deleted'}
 
-def my_posts(current_user) -> List[PostResponse]:
-    with Session() as session:
-        our_user = session.query(User).filter_by(id=current_user.id).first()
-        posts=our_user.posts
-        return posts_returning(posts)
+def my_posts(current_user, db) -> List[PostResponse]:
+    our_user = db.query(User).filter_by(id=current_user.id).first()
+    posts=our_user.posts
+    return posts_returning(posts)
 
 def user_id_posts(user_id: int, db) -> List[PostResponse]:
     user = db.query(User).filter_by(id=user_id).first()

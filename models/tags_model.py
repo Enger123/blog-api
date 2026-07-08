@@ -5,7 +5,7 @@ from sqlalchemy.orm import Mapped, relationship
 class Tag(BaseModel):
     __tablename__ = 'tags'
     name: Mapped[str]
-    tags_posts: Mapped[list['TagPost']] = relationship(back_populates='tag')
+    tags_posts: Mapped[list['TagPost']] = relationship(back_populates='tag', cascade='all, delete-orphan')
 
     def __repr__(self):
         return f"<id={self.id}, name={self.name}>"

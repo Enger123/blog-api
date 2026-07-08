@@ -32,5 +32,5 @@ def delete_com(comment_id: int, current_user: CurrentUser, db: DBSession):
 
 @router.put("/comments/{comment_id}",
             tags=['Comments'])
-def change_com(comment_id: int, com: CommentUpdate, current_user: CurrentUser):
-    return comments.change_com(comment_id, com, current_user)
+def change_com(comment_id: int, com: CommentUpdate, current_user: CurrentUser, db: DBSession):
+    return comments.change_com(comment_id, com, current_user, db)
