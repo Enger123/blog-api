@@ -29,6 +29,12 @@ async def add_post_image(id: int, db: DBSession,
                    file: UploadFile = File()):
     return await posts.add_post_image(id, db, current_user, file)
 
+@router.delete("/posts/{id}/image")
+async def delete_post_image(id: int, db: DBSession,
+                   current_user: CurrentUser):
+    return await posts.delete_post_image(id, db, current_user)
+
+
 @router.get("/posts",
             response_model=List[PostResponse],
             tags=['Posts'])

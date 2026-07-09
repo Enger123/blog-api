@@ -109,6 +109,23 @@ async def add_post_image(id: int, db, current_user, file: UploadFile):
                           )
     )
 
+async def delete_post_image(id: int,
+                            db,
+                            current_user):
+    post = db.query(Post).filter_by(id=id, user_id=current_user.id).first()
+    if not post:
+        raise PostNotFound
+    if post.image_path is not None:
+        file_to_del = Path(post.image_path)
+        if file_to_del.exists():
+            file_to_del.unlink()
+        post.image_path = None
+        db.commit()
+    else:
+        raise HTTPException(status_code=400,
+                            detail='This post does not have an image')
+    return post_returning(post)
+
 def get_posts(db,
               skip: int = 0,
               limit: int = 10,
@@ -155,9 +172,10 @@ def delete_post(id: int, current_user, db) -> dict:
     post = db.query(Post).filter_by(id=id, user_id=current_user.id).first()
     if not post:
         raise HTTPException(status_code=404, detail='Post not found')
-    file_to_del = Path(post.image_path)
-    if file_to_del:
-        file_to_del.unlink()
+    if post.image_path is not None:
+        file_to_del = Path(post.image_path)
+        if file_to_del.exists():
+            file_to_del.unlink()
     db.delete(post)
     db.commit()
     return {'message': 'deleted'}
