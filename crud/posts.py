@@ -1,3 +1,5 @@
+import asyncio
+
 from fastapi import HTTPException, UploadFile
 from models import TagPost, Post, User, Tag
 from schemas.post import PostCreate, PostResponse, PostUpdate, AuthorSchema
@@ -6,6 +8,7 @@ from datetime import datetime
 from typing import List
 from exceptions.errors import PostNotFound
 from pathlib import Path
+import aiofiles
 
 project_dir = Path(__file__).parent.parent
 uploads_dir = project_dir / 'uploads'

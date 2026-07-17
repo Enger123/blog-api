@@ -4,7 +4,8 @@ from crud import posts
 from typing import List
 from app.dependencies import CurrentUser, DBSession, PaginationDep
 from app.background_tasks import add_post_log, delete_post_log, change_post_log
-
+import asyncio
+import time
 router = APIRouter()
 
 @router.get("/posts/tag/{tag}",
@@ -92,3 +93,12 @@ def user_id_posts(user_id: int, db: DBSession) -> List[PostResponse]:
             tags=['Posts'])
 def posts_params(pagination: PaginationDep, db: DBSession):
     return posts.posts_params(pagination, db)
+
+@router.get("/sleep")
+async def sleep():
+    await asyncio.sleep(10)
+    return {'res': 'async func completed after sleep'}
+
+@router.get("/time")
+def now():
+    return {'time': time.time()}
