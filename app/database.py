@@ -1,10 +1,10 @@
-import sqlalchemy
-from sqlalchemy.orm import Mapped, declarative_base, sessionmaker, mapped_column
+from sqlalchemy.orm import Mapped, declarative_base, mapped_column
+from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 
-db = sqlalchemy.create_engine(
-    "postgresql+psycopg2://postgres:Enger123@localhost:5432/blog_api"
+db = create_async_engine(
+    "postgresql+asyncpg://postgres:Enger123@localhost:5432/blog_api"
 )
-Session = sessionmaker(bind=db)
+Session = async_sessionmaker(bind=db)
 Base = declarative_base()
 
 class BaseModel(Base):

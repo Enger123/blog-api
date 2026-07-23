@@ -1,5 +1,4 @@
 import asyncio
-
 from fastapi import HTTPException, UploadFile
 from models import TagPost, Post, User, Tag
 from schemas.post import PostCreate, PostResponse, PostUpdate, AuthorSchema
@@ -9,6 +8,7 @@ from typing import List
 from exceptions.errors import PostNotFound
 from pathlib import Path
 import aiofiles
+from sqlalchemy import select
 
 project_dir = Path(__file__).parent.parent
 uploads_dir = project_dir / 'uploads'
@@ -57,15 +57,15 @@ def get_posts_tag(tag: str, db) -> List[PostResponse]:
     post_404(posts)
     return posts_returning(posts)
 
-def add_post(newpost: PostCreate, current_user, db) -> PostResponse:
+async def add_post(newpost: PostCreate, current_user, db) -> PostResponse:
     post = Post(title=newpost.title,
                 content=newpost.content,
                     user_id=current_user.id,
                     created_at=datetime.now()
                     )
     db.add(post)
-    db.commit()
-    db.refresh(post)
+    await db.commit()
+    await db.refresh(post)
     return post_returning(post)
 
 async def add_post_image(id: int, db, current_user, file: UploadFile):
@@ -73,7 +73,8 @@ async def add_post_image(id: int, db, current_user, file: UploadFile):
     stem = path.stem
     suffix = path.suffix.lower()
     file_size = len(await file.read())
-    existing_post = db.query(Post).filter_by(id=id, user_id=current_user.id).first()
+    db_query = await db.execute(select(Post).where(id=id, user_id=current_user.id))
+    existing_post = db_query.scalars().first()
     if not existing_post:
         raise HTTPException(status_code=404, detail='Post not found')
     if suffix not in ['.jpg', '.png', '.jpeg', '.webp']:
@@ -97,7 +98,7 @@ async def add_post_image(id: int, db, current_user, file: UploadFile):
     content = await file.read()
     with open(loc, 'wb') as f:
         f.write(content)
-    db.commit()
+    await db.commit()
     return PostResponse(
         id=existing_post.id,
         title=existing_post.title,
@@ -115,7 +116,8 @@ async def add_post_image(id: int, db, current_user, file: UploadFile):
 async def delete_post_image(id: int,
                             db,
                             current_user):
-    post = db.query(Post).filter_by(id=id, user_id=current_user.id).first()
+    db_query = await db.execute(select(Post).where(id=id, user_id=current_user.id))
+    post = db_query.scalars().first()
     if not post:
         raise PostNotFound
     if post.image_path is not None:
@@ -123,81 +125,96 @@ async def delete_post_image(id: int,
         if file_to_del.exists():
             file_to_del.unlink()
         post.image_path = None
-        db.commit()
+        await db.commit()
     else:
         raise HTTPException(status_code=400,
                             detail='This post does not have an image')
     return post_returning(post)
 
-def get_posts(db,
+async def get_posts(db,
               skip: int = 0,
               limit: int = 10,
               title: str = None,
               sort: str = 'new') -> List[PostResponse]:
-    query = db.query(Post)
+    query = db.execute(select(Post))
     if title is not None:
-        query = query.filter(Post.title.ilike(f"%{title}%"))
+        query = query.where(Post.title.ilike(f"%{title}%"))
         if sort == 'new':
             query = query.order_by(Post.created_at.desc())
         elif sort == 'old':
             query = query.order_by(Post.created_at)
-    posts = query.offset(skip).limit(limit).all()
+    full_query = query.offset(skip).limit(limit)
+    posts = full_query.scalars().all()
     return posts_returning(posts)
 
-def get_posts_username(username : str, db) -> List[PostResponse]:
+async def get_posts_username(username : str, db) -> List[PostResponse]:
     posts = db.query(Post).join(User).filter(User.username.contains(username)).all()
     if not posts:
         post_404(posts)
     return posts_returning(posts)
 
-
-def get_post_id(id: int, db) -> PostResponse:
-    post = db.query(Post).filter_by(id=id).first()
+async def get_post_id(id: int, db) -> PostResponse:
+    db_query = await db.execute(select(Post).where(Post.id==id))
+    post = db_query.scalars().all()
     if not post:
         raise PostNotFound
     return post_returning(post)
 
-def change_post(id: int,
+async def change_post(id: int,
                 changed_post: PostUpdate,
                 current_user,
                 db) -> PostResponse:
-    post = db.query(Post).filter_by(id=id, user_id=current_user.id).first()
+    db_query = await db.execute(select(Post)
+                                .where(Post.id==id,
+                                       Post.user_id==current_user.id))
+    post = db_query.scalars().first()
     if not post:
         raise HTTPException(status_code=404, detail='Post not found')
     if changed_post.title is not None:
         post.title = changed_post.title
     if changed_post.content is not None:
         post.content = changed_post.content
-    db.commit()
+    await db.commit()
     return post_returning(post)
 
-def delete_post(id: int, current_user, db) -> dict:
-    post = db.query(Post).filter_by(id=id, user_id=current_user.id).first()
+async def delete_post(id: int, current_user, db) -> dict:
+    db_query = await db.execute(select(Post)
+                                .where(Post.id==id,
+                Post.user_id==current_user.id))
+    post = db_query.scalars().first()
     if not post:
         raise HTTPException(status_code=404, detail='Post not found')
     if post.image_path is not None:
         file_to_del = Path(post.image_path)
         if file_to_del.exists():
             file_to_del.unlink()
-    db.delete(post)
-    db.commit()
+    await db.delete(post)
+    await db.commit()
     return {'message': 'deleted'}
 
-def my_posts(current_user, db) -> List[PostResponse]:
-    our_user = db.query(User).filter_by(id=current_user.id).first()
+async def my_posts(current_user, db) -> List[PostResponse]:
+    our_user = await db.execute(select(User)
+                                .where(User.id==current_user.id)
+    )
+
     posts=our_user.posts
     return posts_returning(posts)
 
-def user_id_posts(user_id: int, db) -> List[PostResponse]:
-    user = db.query(User).filter_by(id=user_id).first()
+async def user_id_posts(user_id: int, db) -> List[PostResponse]:
+    db_query = await (db.execute(User)
+                  .where(User.id==user_id)
+                  )
+    user = db_query.scalars().first()
     if not user:
         raise HTTPException(status_code=404, detail='User not found')
     posts = user.posts
     return posts_returning(posts)
 
-def posts_params(pagination, db):
-    posts = (db.query(Post)
+async def posts_params(pagination, db):
+    db_query = (await db.execute(select(Post)
     .limit(pagination.limit)
     .offset(pagination.offset)
-                ).all()
+                )
+                )
+    posts = db_query.scalars().all()
     return posts_returning(posts)

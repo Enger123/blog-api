@@ -8,11 +8,8 @@ from app.database import Session
 CurrentUser = Annotated[User, Depends(get_current_user)]
 PaginationDep = Annotated[PaginationParams, Depends(PaginationParams)]
 
-def get_db():
-    db = Session()
-    try:
-        yield db
-    finally:
-        db.close()
+async def get_db():
+    async with Session() as session:
+        yield session
 
 DBSession = Annotated[Session, Depends(get_db)]
