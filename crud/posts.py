@@ -1,20 +1,27 @@
-import asyncio
 from fastapi import HTTPException, UploadFile
+from sqlalchemy.sql.functions import current_user
+
 from models import TagPost, Post, User, Tag
 from schemas.post import PostCreate, PostResponse, PostUpdate, AuthorSchema
-from app.database import Session
 from datetime import datetime
 from typing import List
 from exceptions.errors import PostNotFound
 from pathlib import Path
 import aiofiles
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 
 project_dir = Path(__file__).parent.parent
 uploads_dir = project_dir / 'uploads'
 uploads_dir.mkdir(exist_ok=True)
 posts_dir = uploads_dir / 'posts'
 posts_dir.mkdir(exist_ok=True)
+
+POST_ROAD_OPTIONS = (
+    selectinload(Post.user),
+    selectinload(Post.comments),
+    selectinload(Post.likes)
+                     )
 
 def post_404(post):
     if not post:
@@ -66,6 +73,15 @@ async def add_post(newpost: PostCreate, current_user, db) -> PostResponse:
     db.add(post)
     await db.commit()
     await db.refresh(post)
+    result = await db.execute(
+        select(Post)
+        .where(Post.id == post.id)
+        .options(*POST_ROAD_OPTIONS
+        )
+    )
+
+    post = result.scalars().first()
+
     return post_returning(post)
 
 async def add_post_image(id: int, db, current_user, file: UploadFile):
@@ -73,7 +89,9 @@ async def add_post_image(id: int, db, current_user, file: UploadFile):
     stem = path.stem
     suffix = path.suffix.lower()
     file_size = len(await file.read())
-    db_query = await db.execute(select(Post).where(id=id, user_id=current_user.id))
+    db_query = await db.execute(select(Post).where(Post.id==id,
+                                                   Post.user_id==current_user.id)
+                                )
     existing_post = db_query.scalars().first()
     if not existing_post:
         raise HTTPException(status_code=404, detail='Post not found')
@@ -99,6 +117,12 @@ async def add_post_image(id: int, db, current_user, file: UploadFile):
     with open(loc, 'wb') as f:
         f.write(content)
     await db.commit()
+    db_query = await db.execute(select(Post).where(Post.id == id,
+                                                   Post.user_id == current_user.id)
+    .options(*POST_ROAD_OPTIONS
+    )
+    )
+    existing_post = db_query.scalars().first()
     return PostResponse(
         id=existing_post.id,
         title=existing_post.title,
@@ -116,7 +140,9 @@ async def add_post_image(id: int, db, current_user, file: UploadFile):
 async def delete_post_image(id: int,
                             db,
                             current_user):
-    db_query = await db.execute(select(Post).where(id=id, user_id=current_user.id))
+    db_query = await db.execute(select(Post).where(Post.id==id,
+                                                   Post.user_id==current_user.id)
+                                )
     post = db_query.scalars().first()
     if not post:
         raise PostNotFound
@@ -129,33 +155,52 @@ async def delete_post_image(id: int,
     else:
         raise HTTPException(status_code=400,
                             detail='This post does not have an image')
-    return post_returning(post)
+    return {'message': 'Image deleted'}
 
 async def get_posts(db,
               skip: int = 0,
               limit: int = 10,
               title: str = None,
               sort: str = 'new') -> List[PostResponse]:
-    query = db.execute(select(Post))
+    query = select(Post)
     if title is not None:
         query = query.where(Post.title.ilike(f"%{title}%"))
         if sort == 'new':
             query = query.order_by(Post.created_at.desc())
         elif sort == 'old':
             query = query.order_by(Post.created_at)
-    full_query = query.offset(skip).limit(limit)
+    full_query = await db.execute(query
+                                  .offset(skip)
+                                  .limit(limit)
+                                  .options(*POST_ROAD_OPTIONS
+                                  )
+                                  )
     posts = full_query.scalars().all()
     return posts_returning(posts)
 
 async def get_posts_username(username : str, db) -> List[PostResponse]:
-    posts = db.query(Post).join(User).filter(User.username.contains(username)).all()
+    result = await db.execute(select(Post)
+                             .join(User)
+                             .where(
+        User.username.contains(username)
+    )
+        .options(
+            *POST_ROAD_OPTIONS
+        )
+    )
+    posts = result.scalars().all()
     if not posts:
         post_404(posts)
     return posts_returning(posts)
 
 async def get_post_id(id: int, db) -> PostResponse:
-    db_query = await db.execute(select(Post).where(Post.id==id))
-    post = db_query.scalars().all()
+    db_query = await db.execute(select(Post)
+                                .where(Post.id==id)
+                                .options(
+        *POST_ROAD_OPTIONS
+    )
+                                )
+    post = db_query.scalars().first()
     if not post:
         raise PostNotFound
     return post_returning(post)
@@ -175,6 +220,14 @@ async def change_post(id: int,
     if changed_post.content is not None:
         post.content = changed_post.content
     await db.commit()
+    await db.refresh(post)
+    result = await db.execute(select(Post)
+                              .where(Post.user_id==current_user.id,
+                                     Post.id == post.id)
+                              .options(*POST_ROAD_OPTIONS
+                              )
+                              )
+    post = result.scalars().first()
     return post_returning(post)
 
 async def delete_post(id: int, current_user, db) -> dict:
@@ -193,16 +246,36 @@ async def delete_post(id: int, current_user, db) -> dict:
     return {'message': 'deleted'}
 
 async def my_posts(current_user, db) -> List[PostResponse]:
-    our_user = await db.execute(select(User)
+    result = await db.execute(select(User)
                                 .where(User.id==current_user.id)
-    )
+                            .options(
+                                selectinload(User.posts)
+                                .selectinload(Post.comments),
 
-    posts=our_user.posts
+                                selectinload(User.posts)
+                                .selectinload(Post.likes),
+
+                                selectinload(User.posts)
+                                .selectinload(Post.user)
+                            ))
+    user = result.scalars().first()
+    posts = user.posts
     return posts_returning(posts)
 
 async def user_id_posts(user_id: int, db) -> List[PostResponse]:
-    db_query = await (db.execute(User)
+    db_query = await (db.execute(select(User)
                   .where(User.id==user_id)
+                  .options(
+        selectinload(User.posts)
+                .selectinload(Post.comments),
+
+        selectinload(User.posts)
+                .selectinload(Post.likes),
+
+                selectinload(User.posts)
+        .selectinload(Post.user)
+                           )
+                                 )
                   )
     user = db_query.scalars().first()
     if not user:
@@ -211,10 +284,12 @@ async def user_id_posts(user_id: int, db) -> List[PostResponse]:
     return posts_returning(posts)
 
 async def posts_params(pagination, db):
-    db_query = (await db.execute(select(Post)
+    db_query = await db.execute(select(Post)
     .limit(pagination.limit)
     .offset(pagination.offset)
+    .options(*POST_ROAD_OPTIONS
+    )
                 )
-                )
+
     posts = db_query.scalars().all()
     return posts_returning(posts)

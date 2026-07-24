@@ -4,6 +4,19 @@ from schemas.comment import CommentCreate, CommentResponse, CommentUpdate
 from typing import List
 from schemas.post import AuthorSchema, PostInfo
 from models import Comment, Post, User
+from sqlalchemy import select
+from sqlalchemy.orm import selectinload, defer
+
+async def get_comments_with_relations(comment_id: int, db, current_user):
+    comment_query = await db.execute(select(Comment)
+    .where(Comment.id == comment_id,
+           Comment.user_id == current_user.id)
+    .options(
+        selectinload(Comment.post),
+        selectinload(Comment.user)
+    )
+    )
+    return comment_query.scalars().first()
 
 def com_returning(comment):
     return CommentResponse(
@@ -20,10 +33,16 @@ def com_returning(comment):
         created_at=comment.created_at
     )
 
-def get_comments_username(username: str, db) -> List[CommentResponse]:
-    comments = db.query(Comment)\
-    .join(User)\
-    .filter(User.username.contains(username)).all()
+async def get_comments_username(username: str, db) -> List[CommentResponse]:
+    db_query = await db.execute(select(Comment)
+    .join(User)
+    .where(User.username.contains(username))
+    .options(
+        selectinload(Comment.post),
+        selectinload(Comment.user)
+    )
+           )
+    comments = db_query.scalars().all()
     if not comments:
         raise HTTPException(status_code=404, detail='Comments not found from this user')
     return [CommentResponse(id=c.id,
@@ -35,8 +54,11 @@ def get_comments_username(username: str, db) -> List[CommentResponse]:
                             created_at=c.created_at)
             for c in comments]
 
-def add_post_comment(id: int, newcomment: CommentCreate, current_user, db) -> CommentResponse:
-    post = db.query(Post).filter_by(id=id).first()
+async def add_post_comment(id: int, newcomment: CommentCreate, current_user, db) -> CommentResponse:
+    post_query = await db.execute(select(Post)
+                            .where(Post.id==id)
+                            )
+    post = post_query.scalars().first()
     if not post:
         raise HTTPException(status_code=404, detail='Post not found')
     comment = Comment(text=newcomment.text,
@@ -45,12 +67,25 @@ def add_post_comment(id: int, newcomment: CommentCreate, current_user, db) -> Co
                           created_at=datetime.now()
     )
     db.add(comment)
-    db.commit()
-    db.refresh(comment)
-    return com_returning(comment)
+    await db.commit()
+    com_query = await db.execute(select(Comment)
+                                   .options(
+        selectinload(Comment.user),
+        selectinload(Comment.post)
+    )
+                                   )
+    com = com_query.scalars().first()
+    return com_returning(com)
 
-def get_post_comments(post_id: int, db) -> List[CommentResponse]:
-    post = db.query(Post).filter_by(id=post_id).first()
+async def get_post_comments(post_id: int, db) -> List[CommentResponse]:
+    post_query = await db.execute(select(Post)
+                            .where(Post.id==post_id)
+                                  .options(
+        selectinload(Post.comments).selectinload(Comment.post),
+        selectinload(Post.comments).selectinload(Comment.user)
+                                           )
+                                  )
+    post = post_query.scalars().first()
     if not post:
         raise HTTPException(status_code=404, detail='Post not found')
     comments = post.comments
@@ -68,19 +103,24 @@ def get_post_comments(post_id: int, db) -> List[CommentResponse]:
                             )
             for comment in comments]
 
-def delete_com(comment_id: int, current_user, db):
-    comment = db.query(Comment).filter_by(id=comment_id, user_id=current_user.id).first()
+async def delete_com(comment_id: int, current_user, db):
+    comment_query = await db.execute(select(Comment)
+                               .where(Comment.id==comment_id,
+                                      Comment.user_id==current_user.id)
+                                     )
+    comment = comment_query.scalars().first()
     if not comment:
         raise HTTPException(status_code=404, detail='Comment not found')
-    db.delete(comment)
-    db.commit()
+    await db.delete(comment)
+    await db.commit()
     return {'message': 'Comment deleted'}
 
-def change_com(comment_id: int, com: CommentUpdate, current_user, db):
-    comment = db.query(Comment).filter_by(id=comment_id, user_id=current_user.id).first()
+async def change_com(comment_id: int, com: CommentUpdate, current_user, db):
+    comment = await get_comments_with_relations(comment_id, db, current_user)
     if not comment:
         raise HTTPException(status_code=404, detail='Comment not found')
     if com.text is not None:
         comment.text = com.text
-    db.commit()
+    await db.commit()
+    comment = await get_comments_with_relations(comment_id, db, current_user)
     return com_returning(comment)
