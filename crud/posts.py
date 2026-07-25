@@ -211,7 +211,9 @@ async def change_post(id: int,
                 db) -> PostResponse:
     db_query = await db.execute(select(Post)
                                 .where(Post.id==id,
-                                       Post.user_id==current_user.id))
+                                       Post.user_id==current_user.id)
+                                .options(*POST_ROAD_OPTIONS)
+                                )
     post = db_query.scalars().first()
     if not post:
         raise HTTPException(status_code=404, detail='Post not found')
@@ -221,13 +223,6 @@ async def change_post(id: int,
         post.content = changed_post.content
     await db.commit()
     await db.refresh(post)
-    result = await db.execute(select(Post)
-                              .where(Post.user_id==current_user.id,
-                                     Post.id == post.id)
-                              .options(*POST_ROAD_OPTIONS
-                              )
-                              )
-    post = result.scalars().first()
     return post_returning(post)
 
 async def delete_post(id: int, current_user, db) -> dict:
