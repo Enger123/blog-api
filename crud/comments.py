@@ -33,6 +33,16 @@ def com_returning(comment):
         created_at=comment.created_at
     )
 
+def coms_returning(comments):
+    return [CommentResponse(id=c.id,
+                            text=c.text,
+                            user=AuthorSchema(id=c.user.id,
+                                                username=c.user.username),
+                            post=PostInfo(id=c.post.id,
+                                            title=c.post.title),
+                            created_at=c.created_at)
+            for c in comments]
+
 async def get_comments_username(username: str, db) -> List[CommentResponse]:
     db_query = await db.execute(select(Comment)
     .join(User)
@@ -45,14 +55,7 @@ async def get_comments_username(username: str, db) -> List[CommentResponse]:
     comments = db_query.scalars().all()
     if not comments:
         raise HTTPException(status_code=404, detail='Comments not found from this user')
-    return [CommentResponse(id=c.id,
-                            text=c.text,
-                            user=AuthorSchema(id=c.user.id,
-                                                username=c.user.username),
-                            post=PostInfo(id=c.post.id,
-                                            title=c.post.title),
-                            created_at=c.created_at)
-            for c in comments]
+    return coms_returning(comments)
 
 async def add_post_comment(id: int, newcomment: CommentCreate, current_user, db) -> CommentResponse:
     post_query = await db.execute(select(Post)
@@ -89,19 +92,7 @@ async def get_post_comments(post_id: int, db) -> List[CommentResponse]:
     if not post:
         raise HTTPException(status_code=404, detail='Post not found')
     comments = post.comments
-    return [CommentResponse(id=comment.id,
-        text=comment.text,
-        user=AuthorSchema(
-            id=comment.user.id,
-            username=comment.user.username
-        ),
-        post=PostInfo(
-            id=post_id,
-            title=post.title
-        ),
-        created_at=comment.created_at
-                            )
-            for comment in comments]
+    return coms_returning(comments)
 
 async def delete_com(comment_id: int, current_user, db):
     comment_query = await db.execute(select(Comment)

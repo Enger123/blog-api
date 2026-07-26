@@ -11,8 +11,8 @@ router = APIRouter()
 @router.get("/posts/tag/{tag}",
             response_model=List[PostResponse],
             tags=['Posts'])
-def get_posts_tag(tag: str, db: DBSession) -> List[PostResponse]:
-    return posts.get_posts_tag(tag, db)
+async def get_posts_tag(tag: str, db: DBSession) -> List[PostResponse]:
+    return await posts.get_posts_tag(tag, db)
 
 @router.post("/posts",
              response_model=PostResponse,

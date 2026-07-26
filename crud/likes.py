@@ -13,6 +13,16 @@ LIKES_ROAD_OPTIONS = (
 
 )
 
+def likes_returning(likes):
+    return [LikeResponse(id=l.id,
+                         user=AuthorSchema(id=l.user_id,
+                                           username=l.user.username
+                                           ),
+                         post=PostInfo(id=l.post_id,
+                                       title=l.post.title)
+                         )
+            for l in likes]
+
 async def get_likes_username(username: str, db):
     likes_query = await db.execute(select(Like)
                              .join(User)
@@ -22,14 +32,7 @@ async def get_likes_username(username: str, db):
     likes = likes_query.scalars().all()
     if not likes:
         raise HTTPException(status_code=404, detail='Likes not found from this user')
-    return [LikeResponse(id=l.id,
-                             user=AuthorSchema(id=l.user_id,
-                                               username=l.user.username
-                                               ),
-                             post=PostInfo(id=l.post_id,
-                                           title=l.post.title)
-                             )
-                for l in likes]
+    return likes_returning(likes)
 
 async def add_post_like(post_id: int, current_user, db):
     post_query = await db.execute(select(Post)

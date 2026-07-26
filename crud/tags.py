@@ -12,6 +12,17 @@ TAGPOST_ROAD_OPTIONS = (
     selectinload(TagPost.tag)
 )
 
+def tags_returning(tags):
+    return [TagResponse(id=tag.id, name=tag.name) for tag in tags]
+
+def tag_post_returning(tag_post):
+    return [TagPostResponse(id=t.id,
+                            tag_id=t.tag.id,
+                            post_id=t.post_id,
+                            tag_name=t.tag.name,
+                            post_title=t.post.title)
+                for t in tag_post]
+
 def tag_post_404(tag_post):
     if not tag_post:
         raise HTTPException(status_code=404, detail='Tags not found')
@@ -27,7 +38,7 @@ async def get_tags_postliked(username: str, db) -> List[TagResponse]:
     if not tags:
             raise HTTPException(status_code=404,
                                 detail=f'Tags not found in the posts liked by {username}')
-    return [TagResponse(id=tag.id, name=tag.name) for tag in tags]
+    return tags_returning(tags)
 
 async def get_tags_inpost_username(username: str, db) -> List[TagResponse]:
     tags_query = await db.execute(select(Tag)
@@ -36,8 +47,7 @@ async def get_tags_inpost_username(username: str, db) -> List[TagResponse]:
             .join(User)
             .where(User.username.contains(username)))
     tags = tags_query.scalars().all()
-    return [TagResponse(id=tag.id,
-                            name=tag.name) for tag in tags]
+    return tags_returning(tags)
 
 async def create_tag(newtag: TagCreate, db):
     tag = Tag(name=newtag.name)
@@ -52,8 +62,7 @@ async def get_tags(db) -> List[TagResponse]:
     tags = tags_query.scalars().all()
     if not tags:
         raise HTTPException(status_code=404, detail='Tags not found')
-    return [TagResponse(id=tag.id,
-                            name=tag.name) for tag in tags]
+    return tags_returning(tags)
 
 async def get_post_tags(post_id: int, db):
     post_query = await db.execute(select(Post)
@@ -68,12 +77,7 @@ async def get_post_tags(post_id: int, db):
                                       )
     tag_post = tag_post_query.scalars().all()
     tag_post_404(tag_post)
-    return [TagPostResponse(id=t.id,
-                            tag_id=t.tag.id,
-                            post_id=t.post_id,
-                            tag_name=t.tag.name,
-                            post_title=t.post.title)
-                for t in tag_post]
+    return tag_post_returning(tag_post)
 
 async def add_post_tags(post_id: int, tag_id: int, current_user, db):
     post_query = await db.execute(select(Post)

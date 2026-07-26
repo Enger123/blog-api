@@ -7,10 +7,6 @@ from auth.jwt import hash_password
 from sqlalchemy import select
 
 async def get_users_likedpost(title: str, db) -> List[UserResponse]:
-    # users = db.query(User)\
-    #     .join(Like)\
-    #     .join(Post)\
-    #     .filter(Post.title.contains(title)).all()
     db_query = await db.execute(select(User)
                                 .join(Like)
                                 .join(Post)

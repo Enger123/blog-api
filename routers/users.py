@@ -24,8 +24,8 @@ def counter(request: Request):
 
 @router.get("/users/likedpost/{title}",
             response_model=List[UserResponse])
-def get_users_likedpost(title: str, db: DBSession) -> List[UserResponse]:
-    return users.get_users_likedpost(title, db)
+async def get_users_likedpost(title: str, db: DBSession) -> List[UserResponse]:
+    return await users.get_users_likedpost(title, db)
 
 @router.post("/users")
 async def add_user(user: UserCreate, db: DBSession, back_tasks: BackgroundTasks):

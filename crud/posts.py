@@ -56,11 +56,14 @@ def posts_returning(posts):
     ) for post in posts
     ]
 
-def get_posts_tag(tag: str, db) -> List[PostResponse]:
-    posts = db.query(Post)\
+async def get_posts_tag(tag: str, db) -> List[PostResponse]:
+    posts_query = await db.execute(select(Post)
     .join(TagPost)\
     .join(Tag)\
-    .filter(Tag.name==tag).all()
+    .where(Tag.name==tag)
+    .options(*POST_ROAD_OPTIONS)
+                        )
+    posts = posts_query.scalars().all()
     post_404(posts)
     return posts_returning(posts)
 
