@@ -1,25 +1,27 @@
 from models import Post, User, Comment, Like, Tag, TagPost
-from sqlalchemy import func
+from sqlalchemy import func, select
 from sqlalchemy.orm import joinedload, selectinload
-def stats_posts(db):
-    post_counter = db.query(func.count(Post.id)).scalar()
+
+async def stats_posts(db):
+    post_counter_query = await db.execute(select(func.count(Post.id)))
+    post_counter = post_counter_query.scalars().first()
     return {'Post_counter': post_counter}
 
-def stats_users(db):
-    users = db.query(func.count(User.id)).scalar()
-    print(users)
+async def stats_users(db):
+    users_query = await db.execute(select(User.id))
+    users = users_query.scalars().all()
     return users
 
-def stats_user_id(db):
-    user_max_id = db.query(func.max(Post.user_id)).scalar()
-    return {'User': user_max_id}
+async def stats_user_id(db):
+    user_max_id_query = await db.execute(select(func.max(Post.user_id)))
+    user_max_id = user_max_id_query.scalars().all()
+    return {'User_id max in post': user_max_id}
 
-def stats_user_posts(db):
-    user_posts = db.query(User.username, func.count(Post.id))\
+async def stats_user_posts(db):
+    user_posts_query = await db.execute(select(User.username, func.count(Post.id))\
     .outerjoin(Post)\
-    .group_by(User.id)\
-    .all()
-    print(user_posts)
+    .group_by(User.id))
+    user_posts = user_posts_query.scalars().all()
     return [
             {
                 'Username': u[0],
@@ -27,15 +29,16 @@ def stats_user_posts(db):
             } for u in user_posts
         ]
 
-def stats_user_maxposts(db):
-    user_max_posts = db.query(Post.user_id, func.count(Post.id))\
+async def stats_user_maxposts(db):
+    user_max_posts_query = await db.execute(select(Post.user_id, func.count(Post.id))\
     .group_by(Post.user_id)\
-    .order_by(func.count(Post.id).desc()).first()
+    .order_by(func.count(Post.id).desc()))
+    user_max_posts = user_max_posts_query.scalars().first()
     print(user_max_posts[0])
     return {'User_id': user_max_posts[0],
             'Max_posts': user_max_posts[1]}
 
-def stats_posts_comments(db):
+async def stats_posts_comments(db):
     posts_comments = db.query(Comment.post_id, func.count(Comment.id))\
     .group_by(Comment.post_id).all()
     print(posts_comments)
@@ -46,7 +49,7 @@ def stats_posts_comments(db):
             } for pc in posts_comments
         ]
 
-def stats_posts_likes(db):
+async def stats_posts_likes(db):
     posts_likes = db.query(Post.id, func.count(Like.id))\
     .outerjoin(Like)\
     .group_by(Post.id).all()
@@ -58,7 +61,7 @@ def stats_posts_likes(db):
             } for pl in posts_likes
         ]
 
-def stats_users_maxcomments(db):
+async def stats_users_maxcomments(db):
     user_max_comments = db.query(User.id, func.count(Comment.id))\
     .join(Comment)\
     .group_by(User.id)\
@@ -69,7 +72,7 @@ def stats_users_maxcomments(db):
             'Comments': user_max_comments[1]
         }
 
-def stats_tags(db):
+async def stats_tags(db):
     tags = db.query(Tag.name, func.count(TagPost.id))\
     .outerjoin(TagPost)\
     .group_by(Tag.id)\
@@ -83,7 +86,7 @@ def stats_tags(db):
             } for tag in tags
         ]
 
-def stats_posts_tags(db):
+async def stats_posts_tags(db):
     diff_tags_post = db.query(User.username, Tag.name) \
         .join(Post)\
         .join(TagPost)\
@@ -98,7 +101,7 @@ def stats_posts_tags(db):
             } for tag in diff_tags_post
         ]
 
-def stats_tag_posts_count(db):
+async def stats_tag_posts_count(db):
     tag_posts = db.query(Tag.name, func.count(TagPost.id))\
         .outerjoin(TagPost)\
         .group_by(Tag.name)\
@@ -112,7 +115,7 @@ def stats_tag_posts_count(db):
             } for tp in tag_posts
         ]
 
-def stats_popular_tag(db):
+async def stats_popular_tag(db):
     popular_tag = db.query(Tag.name, func.count(TagPost.id))\
         .join(TagPost)\
         .group_by(Tag.id)\
@@ -124,7 +127,7 @@ def stats_popular_tag(db):
             'Counter': popular_tag[1]
                 }
 
-def stats_posts3_likes(db):
+async def stats_posts3_likes(db):
     posts3_likes = db.query(Post.id, func.count(Like.id)) \
         .join(Like) \
         .group_by(Post.id) \
@@ -138,7 +141,7 @@ def stats_posts3_likes(db):
             } for pl in posts3_likes
         ]
 
-def stats_users_posts_comments(db):
+async def stats_users_posts_comments(db):
     user_st = db.query(User.username,
                        func.count(Post.id),
                        func.count(Comment.id))\
@@ -154,7 +157,7 @@ def stats_users_posts_comments(db):
             } for user in user_st
         ]
 
-def stats_users_posts_moretwo(db):
+async def stats_users_posts_moretwo(db):
     users = db.query(User.username, func.count(Post.id))\
         .outerjoin(Post)\
         .group_by(User.id)\
@@ -169,7 +172,7 @@ def stats_users_posts_moretwo(db):
             } for u in users
         ]
 
-def stats_posts_comments_more3(db):
+async def stats_posts_comments_more3(db):
     posts = db.query(Post.title, func.count(Comment.id))\
         .outerjoin(Comment)\
         .group_by(Post.id)\
@@ -183,7 +186,7 @@ def stats_posts_comments_more3(db):
             } for p in posts
         ]
 
-def stats_posts_tags_more2(db):
+async def stats_posts_tags_more2(db):
     tags_more2 = db.query(Tag.name, func.count(TagPost.id))\
         .outerjoin(TagPost)\
         .group_by(Tag.id)\
@@ -196,7 +199,7 @@ def stats_posts_tags_more2(db):
             } for t in tags_more2
         ]
 
-def stats_users_commentstop3(db):
+async def stats_users_commentstop3(db):
     users = db.query(User.username, func.count(Comment.id))\
         .join(Comment)\
         .group_by(User.id)\
@@ -210,7 +213,7 @@ def stats_users_commentstop3(db):
             } for u in users
         ]
 
-def min_posts_user(db):
+async def min_posts_user(db):
     user = db.query(User.username, func.count(Like.id))\
         .outerjoin(Like)\
         .group_by(User.id)\
@@ -222,7 +225,7 @@ def min_posts_user(db):
                 'Likes': user[1]
             }
 
-def stats_max_posts_users(db):
+async def stats_max_posts_users(db):
     users = db.query(User.username, func.count(Post.id))\
         .outerjoin(Post)\
         .group_by(User.id)\
@@ -235,7 +238,7 @@ def stats_max_posts_users(db):
             } for user in users
         ]
 
-def stats_posts_maxlikes(db):
+async def stats_posts_maxlikes(db):
     like_stats = (db.query(Like.post_id,
                                    func.count(Like.id)
                                    .label('likes_counter')
@@ -262,7 +265,7 @@ def stats_posts_maxlikes(db):
             } for p in posts
         ]
 
-def stats_users_posts_more_avg(db):
+async def stats_users_posts_more_avg(db):
     post_stats = (db.query(Post.user_id,
                                    func.count(Post.id)
                                    .label('post_counter')
@@ -288,7 +291,7 @@ def stats_users_posts_more_avg(db):
             } for u in user_posts
         ]
 
-def stats_posts_max_comments(db):
+async def stats_posts_max_comments(db):
     comments_stats = (db.query(
             Comment.post_id,
             func.count(Comment.id)
@@ -314,7 +317,7 @@ def stats_posts_max_comments(db):
             } for p in post_comments
         ]
 
-def stats_posts_moreavg(db):
+async def stats_posts_moreavg(db):
     posts_stats = (db.query(
             User.id,
             func.count(Post.id).label('post_counter')
@@ -339,7 +342,7 @@ def stats_posts_moreavg(db):
             } for u in user_moreavg_posts
         ]
 
-def stats_comments_moreavg(db):
+async def stats_comments_moreavg(db):
     comments_stats = db.query(
             User.id.label('user_id'),
             func.count(Comment.id).label('comments_counter')
@@ -363,7 +366,7 @@ def stats_comments_moreavg(db):
             } for u in user_moreavg_comments
         ]
 
-def test_joinedload(db):
+async def test_joinedload(db):
     posts = db.query(Post)\
         .all()
     for post in posts:

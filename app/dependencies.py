@@ -1,15 +1,13 @@
 from typing import Annotated
+
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from auth.jwt import get_current_user
 from fastapi.params import Depends
 from schemas.post import PaginationParams
 from models import User
-from app.database import Session
+from app.database import get_db
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 PaginationDep = Annotated[PaginationParams, Depends(PaginationParams)]
-
-async def get_db():
-    async with Session() as session:
-        yield session
-
-DBSession = Annotated[Session, Depends(get_db)]
+DBSession = Annotated[AsyncSession, Depends(get_db)]

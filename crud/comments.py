@@ -9,8 +9,8 @@ from sqlalchemy.orm import selectinload, defer
 
 async def get_comments_with_relations(comment_id: int, db, current_user):
     comment_query = await db.execute(select(Comment)
-    .where(Comment.id == comment_id,
-           Comment.user_id == current_user.id)
+    .where(Comment.id == comment_id #для тесту без current_user (403 код помилки)
+           )
     .options(
         selectinload(Comment.post),
         selectinload(Comment.user)
@@ -108,6 +108,10 @@ async def delete_com(comment_id: int, current_user, db):
 
 async def change_com(comment_id: int, com: CommentUpdate, current_user, db):
     comment = await get_comments_with_relations(comment_id, db, current_user)
+    if comment.user_id != current_user.id: #для тесту ця перевірка (403 код помилки)
+        raise HTTPException(
+            status_code=403,
+            detail='You can not change this comment')
     if not comment:
         raise HTTPException(status_code=404, detail='Comment not found')
     if com.text is not None:

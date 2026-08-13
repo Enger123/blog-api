@@ -74,7 +74,7 @@ async def delete_post(id: int,
                 current_user: CurrentUser,
                 db: DBSession,
                 back_tasks: BackgroundTasks) -> dict:
-    # back_tasks.add_task(delete_post_log, id, current_user.username)
+    back_tasks.add_task(delete_post_log, id, current_user.username)
     return await posts.delete_post(id, current_user, db)
 
 @router.get("/me/posts",

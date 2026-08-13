@@ -1,11 +1,13 @@
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.security import OAuth2PasswordRequestForm
+from sqlalchemy.ext.asyncio import AsyncSession
+
 from schemas.user import UserCreate, UserResponse, UserUpdate
 from crud import users
 from fastapi.params import Depends
 from auth import jwt
 from typing import List
-from app.dependencies import CurrentUser, DBSession
+from app.dependencies import CurrentUser, DBSession, get_db
 from app.background_tasks import add_user_log
 
 router =  APIRouter(tags=['Users'])
@@ -38,8 +40,9 @@ def profile(user : CurrentUser):
     return user
 
 @router.post("/token")
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm=Depends()):
-    return await jwt.login_for_access_token(form_data)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm=Depends(),
+                                 db: AsyncSession=Depends(get_db)):
+    return await jwt.login_for_access_token(form_data, db)
 
 @router.get("/users",
             response_model=List[UserResponse]

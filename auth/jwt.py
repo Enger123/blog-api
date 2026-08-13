@@ -3,8 +3,11 @@ from fastapi.params import Depends
 from fastapi.security import OAuth2PasswordBearer, OAuth2PasswordRequestForm
 from jose import jwt, JWTError
 from passlib.context import CryptContext
-from datetime import timedelta, datetime
+from datetime import timedelta, datetime, UTC
 from sqlalchemy import select
+from sqlalchemy.ext.asyncio import AsyncSession
+from app.database import get_db
+
 from app.database import Session
 from models.user_model import User
 
@@ -15,11 +18,10 @@ ACCESS_TOKEN_EXPIRE_MINUTES = 60
 pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth_2_scheme = OAuth2PasswordBearer(tokenUrl='/token')
 
-async def get_user(username: str):
-    async with Session() as session:
-        db_query = await session.execute(select(User).where(User.username==username))
-        user = db_query.scalars().first()
-        return user
+async def get_user(username: str, db: AsyncSession):
+    db_query = await db.execute(select(User).where(User.username==username))
+    user = db_query.scalars().first()
+    return user
 
 def hash_password(password: str):
     return pwd_context.hash(password)
@@ -27,8 +29,8 @@ def hash_password(password: str):
 def verify_password(password: str, hashed_password: str):
     return pwd_context.verify(password, hashed_password)
 
-async def authenticate_user(username: str, password: str):
-    user = await get_user(username)
+async def authenticate_user(username: str, password: str, db: AsyncSession):
+    user = await get_user(username, db)
     if not user:
         return False
     if not verify_password(password, user.hashed_password):
@@ -38,14 +40,15 @@ async def authenticate_user(username: str, password: str):
 def create_access_token(data: dict, expires_delta: timedelta | None):
     to_encode = data.copy()
     if expires_delta:
-        expires = datetime.utcnow() + expires_delta
+        expires = datetime.now(UTC) + expires_delta
     else:
-        expires = datetime.utcnow() + timedelta(minutes=15)
+        expires = datetime.now(UTC) + timedelta(minutes=15)
     to_encode.update({'exp': expires})
     encoded_jwt = jwt.encode(to_encode, SECRET_KEY, algorithm=ALGORITHM)
     return encoded_jwt
 
-async def get_current_user(token: str=Depends(oauth_2_scheme)):
+async def get_current_user(token: str=Depends(oauth_2_scheme),
+                           db: AsyncSession = Depends(get_db)):
     credential_exception = HTTPException(status_code=401, detail='Invalid login or password')
     try:
         payload = jwt.decode(token, SECRET_KEY, algorithms=[ALGORITHM])
@@ -54,13 +57,13 @@ async def get_current_user(token: str=Depends(oauth_2_scheme)):
             raise credential_exception
     except JWTError:
         raise credential_exception
-    user = await get_user(username)
+    user = await get_user(username, db)
     if user is None:
         raise credential_exception
     return user
 
-async def login_for_access_token(form_data: OAuth2PasswordRequestForm=Depends()):
-    user = await authenticate_user(form_data.username, form_data.password)
+async def login_for_access_token(form_data: OAuth2PasswordRequestForm, db: AsyncSession):
+    user = await authenticate_user(form_data.username, form_data.password, db)
     if not user:
         raise HTTPException(status_code=401, detail='Invalid login or password')
     access_token_expires = timedelta(minutes=ACCESS_TOKEN_EXPIRE_MINUTES)

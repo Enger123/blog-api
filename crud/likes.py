@@ -61,7 +61,7 @@ async def add_post_like(post_id: int, current_user, db):
 
 async def delete_post_like(post_id: int, current_user, db):
     like_query = await db.execute(select(Like)
-            .where(post_id=post_id, user_id=current_user.id))
+            .where(Like.post_id==post_id, Like.user_id==current_user.id))
     like = like_query.scalars().first()
     if not like:
         raise HTTPException(status_code=404, detail='Post not found')
