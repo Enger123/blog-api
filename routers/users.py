@@ -1,7 +1,6 @@
 from fastapi import APIRouter, BackgroundTasks, Request
 from fastapi.security import OAuth2PasswordRequestForm
 from sqlalchemy.ext.asyncio import AsyncSession
-
 from schemas.user import UserCreate, UserResponse, UserUpdate
 from crud import users
 from fastapi.params import Depends

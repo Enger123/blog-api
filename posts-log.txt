@@ -7,3 +7,6 @@
 2026-07-27 18:05:30.735837 | Post Топ created by Роман
 2026-08-03 21:21:34.358219 | Post 5 deleted by Вот4
 2026-08-13 13:11:42.687838 | Post 1 deleted by test_user
+2026-08-13 13:57:28.468574 | Post 1 deleted by test_user
+2026-08-13 16:10:50.451129 | Post 1 deleted by test_user
+2026-08-13 16:14:02.450979 | Post 1 deleted by test_user

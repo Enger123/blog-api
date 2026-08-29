@@ -17,7 +17,7 @@ async def stats_user_id(db: DBSession):
 
 @router.get("/stats/users/posts-count", tags=['Stats'])
 async def stats_user_posts(db: DBSession):
-    return stats.stats_user_posts(db)
+    return await stats.stats_user_posts(db)
 
 @router.get("/stats/users-maxposts", tags=['Stats'])
 async def stats_user_maxposts(db: DBSession):

@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 
 db = create_async_engine(
-    "postgresql+asyncpg://postgres:Enger123@localhost:5432/blog_api"
+    "postgresql+asyncpg://postgres:Enger123@postgres:5432/blog_api"
     # , poolclass=NullPool
     )
 
