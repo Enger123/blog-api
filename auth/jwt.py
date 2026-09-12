@@ -19,9 +19,10 @@ pwd_context = CryptContext(schemes=['bcrypt'], deprecated='auto')
 oauth_2_scheme = OAuth2PasswordBearer(tokenUrl='/token')
 
 async def get_user(username: str, db: AsyncSession):
-    db_query = await db.execute(select(User).where(User.username==username))
-    user = db_query.scalars().first()
-    return user
+    user_query = await db.execute(
+        select(User).where(User.username==username)
+    )
+    return user_query.scalars().first()
 
 def hash_password(password: str):
     return pwd_context.hash(password)

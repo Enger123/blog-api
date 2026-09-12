@@ -8,6 +8,7 @@ class PostCreate(BaseModel):
 class AuthorSchema(BaseModel):
     id: int
     username: str
+    model_config = {'from_attributes': True}
 
 class PostResponse(BaseModel):
     id: int
@@ -19,6 +20,7 @@ class PostResponse(BaseModel):
     likes_count: int
     created_at: datetime
     user: AuthorSchema
+    model_config = {'from_attributes': True}
 
 class PostUpdate(BaseModel):
     title: str | None = None

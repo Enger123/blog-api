@@ -13,7 +13,6 @@ class User(BaseModel):
     def __repr__(self):
         return f"<id={self.id}, username={self.username}, hashed_password={self.hashed_password}, created_at={self.created_at}>"
 
-
 from models.posts_model import Post
 from models.comments_model import Comment
 from models.likes_model import Like

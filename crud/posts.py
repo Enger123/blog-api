@@ -1,7 +1,9 @@
 from fastapi import HTTPException, UploadFile
+from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.functions import current_user
-
+# from cache.redis_caching import RedisCached
 from models import TagPost, Post, User, Tag
+from repositories.posts import PostRepository
 from schemas.post import PostCreate, PostResponse, PostUpdate, AuthorSchema
 from datetime import datetime
 from typing import List
@@ -9,7 +11,8 @@ from exceptions.errors import PostNotFound
 from pathlib import Path
 import aiofiles
 from sqlalchemy import select
-from sqlalchemy.orm import selectinload
+from sqlalchemy.orm import selectinload, Session
+
 
 project_dir = Path(__file__).parent.parent
 uploads_dir = project_dir / 'uploads'
@@ -17,277 +20,179 @@ uploads_dir.mkdir(exist_ok=True)
 posts_dir = uploads_dir / 'posts'
 posts_dir.mkdir(exist_ok=True)
 
-POST_ROAD_OPTIONS = (
-    selectinload(Post.user),
-    selectinload(Post.comments),
-    selectinload(Post.likes)
-                     )
 
 def post_404(post):
     if not post:
         raise HTTPException(status_code=404, detail='Post/posts not found')
 
-def post_returning(post):
-    return PostResponse(id=post.id,
-                        title=post.title,
-                        content=post.content,
-                        user_id=post.user_id,
-                        image_path=post.image_path,
-                        comments_count=len(post.comments),
-                        likes_count=len(post.likes),
-                        created_at=post.created_at,
-                        user=AuthorSchema(id=post.user.id,
-                                          username=post.user.username
-                                          )
-                        )
+class PostService:
+    def __init__(self, db: AsyncSession):
+        self.db = db
+        self.post_repository = PostRepository(db)
 
-def posts_returning(posts):
-    return [PostResponse(
-        id=post.id,
-        title=post.title,
-        content=post.content,
-        user_id=post.user_id,
-        image_path=post.image_path,
-        comments_count=len(post.comments),
-        likes_count=len(post.likes),
-        created_at=post.created_at,
-        user=AuthorSchema(id=post.user.id,
-                          username=post.user.username)
-    ) for post in posts
-    ]
+    def post_returning(self, post):
+        return PostResponse(id=post.id,
+                            title=post.title,
+                            content=post.content,
+                            user_id=post.user_id,
+                            image_path=post.image_path,
+                            comments_count=len(post.comments),
+                            likes_count=len(post.likes),
+                            created_at=post.created_at,
+                            user=AuthorSchema(id=post.user.id,
+                                              username=post.user.username
+                                              )
+                            )
 
-async def get_posts_tag(tag: str, db) -> List[PostResponse]:
-    posts_query = await db.execute(select(Post)
-    .join(TagPost)\
-    .join(Tag)\
-    .where(Tag.name==tag)
-    .options(*POST_ROAD_OPTIONS)
-                        )
-    posts = posts_query.scalars().all()
-    post_404(posts)
-    return posts_returning(posts)
+    def posts_returning(self, posts):
+        return [PostResponse(
+            id=post.id,
+            title=post.title,
+            content=post.content,
+            user_id=post.user_id,
+            image_path=post.image_path,
+            comments_count=len(post.comments),
+            likes_count=len(post.likes),
+            created_at=post.created_at,
+            user=AuthorSchema(id=post.user.id,
+                              username=post.user.username)
+        ) for post in posts
+        ]
 
-async def add_post(newpost: PostCreate, current_user, db) -> PostResponse:
-    post = Post(title=newpost.title,
-                content=newpost.content,
-                    user_id=current_user.id,
-                    created_at=datetime.now()
-                    )
-    db.add(post)
-    await db.commit()
-    await db.refresh(post)
-    result = await db.execute(
-        select(Post)
-        .where(Post.id == post.id)
-        .options(*POST_ROAD_OPTIONS
-        )
-    )
-
-    post = result.scalars().first()
-
-    return post_returning(post)
-
-async def add_post_image(id: int, db, current_user, file: UploadFile):
-    path = Path(file.filename)
-    stem = path.stem
-    suffix = path.suffix.lower()
-    file_size = len(await file.read())
-    db_query = await db.execute(select(Post).where(Post.id==id,
-                                                   Post.user_id==current_user.id)
-                                )
-    existing_post = db_query.scalars().first()
-    if not existing_post:
-        raise HTTPException(status_code=404, detail='Post not found')
-    if suffix not in ['.jpg', '.png', '.jpeg', '.webp']:
-        raise HTTPException(status_code=400,
-                            detail=f'You can not upload a \"{suffix}\" file')
-    if file_size > 3000000:
-        raise HTTPException(status_code=400,
-                            detail="Size of a given file can not be more that 3 mB")
-    if existing_post.image_path is not None:
-        old_file = Path(existing_post.image_path)
-        if old_file.exists():
-            old_file.unlink()
-    loc = posts_dir / file.filename
-    i = 1
-    while loc.exists():
-        new_filename = f"{stem}({i}){suffix}"
-        loc = posts_dir / new_filename
-        i += 1
-    existing_post.image_path = str(loc)
-    await file.seek(0)
-    content = await file.read()
-    with open(loc, 'wb') as f:
-        f.write(content)
-    await db.commit()
-    db_query = await db.execute(select(Post).where(Post.id == id,
-                                                   Post.user_id == current_user.id)
-    .options(*POST_ROAD_OPTIONS
-    )
-    )
-    existing_post = db_query.scalars().first()
-    return PostResponse(
-        id=existing_post.id,
-        title=existing_post.title,
-        content=existing_post.content,
-        user_id=current_user.id,
-        image_path=existing_post.image_path,
-        comments_count=len(existing_post.comments),
-        likes_count=len(existing_post.likes),
-        created_at=existing_post.created_at,
-        user=AuthorSchema(id=current_user.id,
-            username=existing_post.user.username
-                          )
-    )
-
-async def delete_post_image(id: int,
-                            db,
-                            current_user):
-    db_query = await db.execute(select(Post).where(Post.id==id,
-                                                   Post.user_id==current_user.id)
-                                )
-    post = db_query.scalars().first()
-    if not post:
-        raise PostNotFound
-    if post.image_path is not None:
-        file_to_del = Path(post.image_path)
-        if file_to_del.exists():
-            file_to_del.unlink()
-        post.image_path = None
-        await db.commit()
-    else:
-        raise HTTPException(status_code=400,
-                            detail='This post does not have an image')
-    return {'message': 'Image deleted'}
-
-async def get_posts(db,
-              skip: int = 0,
-              limit: int = 10,
-              title: str = None,
-              sort: str = 'new') -> List[PostResponse]:
-    query = select(Post)
-    if title is not None:
-        query = query.where(Post.title.ilike(f"%{title}%"))
-        if sort == 'new':
-            query = query.order_by(Post.created_at.desc())
-        elif sort == 'old':
-            query = query.order_by(Post.created_at)
-    full_query = await db.execute(query
-                                  .offset(skip)
-                                  .limit(limit)
-                                  .options(*POST_ROAD_OPTIONS
-                                  )
-                                  )
-    posts = full_query.scalars().all()
-    return posts_returning(posts)
-
-async def get_posts_username(username : str, db) -> List[PostResponse]:
-    result = await db.execute(select(Post)
-                             .join(User)
-                             .where(
-        User.username.contains(username)
-    )
-        .options(
-            *POST_ROAD_OPTIONS
-        )
-    )
-    posts = result.scalars().all()
-    if not posts:
+    async def get_posts_tag(self, tag: str) -> List[PostResponse]:
+        posts = await self.post_repository.get_posts_tag(tag)
         post_404(posts)
-    return posts_returning(posts)
+        return self.posts_returning(posts)
 
-async def get_post_id(id: int, db) -> PostResponse:
-    db_query = await db.execute(select(Post)
-                                .where(Post.id==id)
-                                .options(
-        *POST_ROAD_OPTIONS
-    )
-                                )
-    post = db_query.scalars().first()
-    if not post:
-        raise PostNotFound
-    return post_returning(post)
+    async def add_post(self, newpost: PostCreate, current_user) -> PostResponse:
+        new_post = await self.post_repository.create_post(newpost, current_user)
+        await self.db.commit()
+        await self.db.refresh(new_post)
+        post_to_return = await self.post_repository.get_post(new_post.id)
 
-async def change_post(id: int,
-                changed_post: PostUpdate,
-                current_user,
-                db) -> PostResponse:
-    db_query = await db.execute(select(Post)
-                                .where(Post.id==id,
-                                       Post.user_id==current_user.id)
-                                .options(*POST_ROAD_OPTIONS)
-                                )
-    post = db_query.scalars().first()
-    if not post:
-        raise HTTPException(status_code=404, detail='Post not found')
-    if changed_post.title is not None:
-        post.title = changed_post.title
-    if changed_post.content is not None:
-        post.content = changed_post.content
-    await db.commit()
-    await db.refresh(post)
-    return post_returning(post)
+        return self.post_returning(post_to_return)
 
-async def delete_post(id: int, current_user, db) -> dict:
-    db_query = await db.execute(select(Post)
-                                .where(Post.id==id,
-                Post.user_id==current_user.id))
-    post = db_query.scalars().first()
-    if not post:
-        raise HTTPException(status_code=404, detail='Post not found')
-    if post.image_path is not None:
-        file_to_del = Path(post.image_path)
-        if file_to_del.exists():
-            file_to_del.unlink()
-    await db.delete(post)
-    await db.commit()
-    return {'message': 'deleted'}
+    async def add_post_image(self, id: int, current_user, file: UploadFile):
+        path = Path(file.filename)
+        stem = path.stem
+        suffix = path.suffix.lower()
+        file_size = len(await file.read())
+        existing_post = await self.post_repository.get_post_with_userid(current_user, id)
+        if not existing_post:
+            raise HTTPException(status_code=404, detail='Post not found')
+        if suffix not in ['.jpg', '.png', '.jpeg', '.webp']:
+            raise HTTPException(status_code=400,
+                                detail=f'You can not upload a \"{suffix}\" file')
+        if file_size > 3000000:
+            raise HTTPException(status_code=400,
+                                detail="Size of a given file can not be more that 3 mB")
+        if existing_post.image_path is not None:
+            old_file = Path(existing_post.image_path)
+            if old_file.exists():
+                old_file.unlink()
+        loc = posts_dir / file.filename
+        i = 1
+        while loc.exists():
+            new_filename = f"{stem}({i}){suffix}"
+            loc = posts_dir / new_filename
+            i += 1
+        existing_post.image_path = str(loc)
+        await file.seek(0)
+        content = await file.read()
+        with open(loc, 'wb') as f:
+            f.write(content)
+        await self.db.commit()
+        existing_post = await self.post_repository.get_post_with_userid(current_user, id)
+        return self.post_returning(existing_post)
 
-async def my_posts(current_user, db) -> List[PostResponse]:
-    result = await db.execute(select(User)
-                                .where(User.id==current_user.id)
-                            .options(
-                                selectinload(User.posts)
-                                .selectinload(Post.comments),
+    async def delete_post_image(self, id: int,
+                                current_user):
+        post = await self.post_repository.get_post_with_userid(current_user, id)
+        if not post:
+            raise PostNotFound
+        if post.image_path is not None:
+            file_to_del = Path(post.image_path)
+            if file_to_del.exists():
+                file_to_del.unlink()
+            post.image_path = None
+            await self.db.commit()
+        else:
+            raise HTTPException(status_code=400,
+                                detail='This post does not have an image')
+        return {'message': 'Image deleted'}
 
-                                selectinload(User.posts)
-                                .selectinload(Post.likes),
+    async def get_posts_without_settings(self):
+        posts = await self.post_repository.get_posts_without_setts()
+        return self.posts_returning(posts)
 
-                                selectinload(User.posts)
-                                .selectinload(Post.user)
-                            ))
-    user = result.scalars().first()
-    posts = user.posts
-    return posts_returning(posts)
+    async def get_posts(self,
+                  skip: int = 0,
+                  limit: int = 10,
+                  title: str = None,
+                  sort: str = 'new') -> List[PostResponse]:
+        query = select(Post)
+        if title is not None:
+            query = query.where(Post.title.ilike(f"%{title}%"))
+            if sort == 'new':
+                query = query.order_by(Post.created_at.desc())
+            elif sort == 'old':
+                query = query.order_by(Post.created_at)
+        posts = await self.post_repository.list_posts_settings(query, skip, limit)
+        return self.posts_returning(posts)
 
-async def user_id_posts(user_id: int, db) -> List[PostResponse]:
-    db_query = await (db.execute(select(User)
-                  .where(User.id==user_id)
-                  .options(
-        selectinload(User.posts)
-                .selectinload(Post.comments),
+    async def get_posts_username(self, username : str) -> List[PostResponse]:
+        posts = await self.post_repository.get_posts_username(username)
+        if not posts:
+            post_404(posts)
+        return self.posts_returning(posts)
 
-        selectinload(User.posts)
-                .selectinload(Post.likes),
+    async def get_post_id(self, id: int) -> PostResponse:
+        post = await self.post_repository.get_post(id)
+        if not post:
+            raise PostNotFound
+        return self.post_returning(post)
 
-                selectinload(User.posts)
-        .selectinload(Post.user)
-                           )
-                                 )
-                  )
-    user = db_query.scalars().first()
-    if not user:
-        raise HTTPException(status_code=404, detail='User not found')
-    posts = user.posts
-    return posts_returning(posts)
+    async def change_post(self, id: int,
+                    changed_post: PostUpdate,
+                    current_user) -> PostResponse:
+        checked_post = await self.post_repository.get_post_with_userid(current_user, id)
+        if not checked_post:
+            raise HTTPException(status_code=404, detail='Post not found')
+        if changed_post.title is not None:
+            checked_post.title = changed_post.title
+        if changed_post.content is not None:
+            checked_post.content = changed_post.content
+        await self.db.commit()
+        await self.db.refresh(checked_post)
+        return self.post_returning(checked_post)
 
-async def posts_params(pagination, db):
-    db_query = await db.execute(select(Post)
-    .limit(pagination.limit)
-    .offset(pagination.offset)
-    .options(*POST_ROAD_OPTIONS
-    )
-                )
+    async def delete_post(self, id: int, current_user) -> dict:
+        post = await self.post_repository.get_post_with_userid(current_user, id)
+        if not post:
+            raise HTTPException(status_code=404, detail='Post not found')
+        if post.image_path is not None:
+            file_to_del = Path(post.image_path)
+            if file_to_del.exists():
+                file_to_del.unlink()
+        await self.post_repository.delete_post(post)
+        await self.db.commit()
+        return {'message': 'deleted'}
 
-    posts = db_query.scalars().all()
-    return posts_returning(posts)
+    async def my_posts(self, current_user) -> List[PostResponse]:
+        user = await self.post_repository.my_posts(current_user)
+        posts = user.posts
+        return self.posts_returning(posts)
+
+    async def user_id_posts(self, user_id: int) -> List[PostResponse]:
+        user = await self.post_repository.user_id_posts(user_id)
+        if not user:
+            raise HTTPException(status_code=404, detail='User not found')
+        posts = user.posts
+        return self.posts_returning(posts)
+
+    async def posts_params(self, pagination):
+        db_query = select(Post)
+        posts = await self.post_repository.list_posts_settings(
+            db_query, pagination.offset, pagination.limit
+        )
+        return self.posts_returning(posts)

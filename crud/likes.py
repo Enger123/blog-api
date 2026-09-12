@@ -1,5 +1,5 @@
 from fastapi import HTTPException
-from crud.posts import POST_ROAD_OPTIONS, post_returning
+# from crud.posts import POST_ROAD_OPTIONS, post_returning
 from schemas.post import PostResponse, AuthorSchema, PostInfo
 from models import Like, Post, User
 from schemas.user import UserResponse
