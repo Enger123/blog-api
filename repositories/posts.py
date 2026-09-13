@@ -109,7 +109,7 @@ class PostRepository:
                                 ))
         return result.scalars().first()
 
-    async def get_posts_username(self, username : str) -> List[PostResponse]:
+    async def get_posts_username(self, username : str):
         result = await self.db.execute(select(Post)
                                  .join(User)
                                  .where(

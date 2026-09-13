@@ -6,7 +6,7 @@ from crud import users
 from fastapi.params import Depends
 from auth import jwt
 from typing import List
-from app.dependencies import CurrentUser, DBSession, get_db
+from app.dependencies import CurrentUser, UserServiceDep, get_db
 from app.background_tasks import add_user_log
 
 router =  APIRouter(tags=['Users'])
@@ -25,13 +25,13 @@ def counter(request: Request):
 
 @router.get("/users/likedpost/{title}",
             response_model=List[UserResponse])
-async def get_users_likedpost(title: str, db: DBSession) -> List[UserResponse]:
-    return await users.get_users_likedpost(title, db)
+async def get_users_likedpost(title: str, user_service: UserServiceDep) -> List[UserResponse]:
+    return await user_service.get_users_likedpost(title)
 
 @router.post("/users")
-async def add_user(user: UserCreate, db: DBSession, back_tasks: BackgroundTasks):
+async def add_user(user: UserCreate, user_service: UserServiceDep, back_tasks: BackgroundTasks):
     # back_tasks.add_task(add_user_log, user.username)
-    return await users.add_user(user, db)
+    return await user_service.add_user(user)
 
 @router.get("/me",
             response_model=UserResponse)
@@ -46,24 +46,24 @@ async def login_for_access_token(form_data: OAuth2PasswordRequestForm=Depends(),
 @router.get("/users",
             response_model=List[UserResponse]
 )
-async def get_users(db: DBSession,
+async def get_users(user_service: UserServiceDep,
               ) -> List[UserResponse]:
-    return await users.get_users(db)
+    return await user_service.get_users()
 
 @router.get("/users/{id}",
             response_model=UserResponse)
-async def get_user_id(id: int, db: DBSession) -> UserResponse:
-    return await users.get_user_id(id, db)
+async def get_user_id(id: int, user_service: UserServiceDep) -> UserResponse:
+    return await user_service.get_user_id(id)
 
 @router.put("/users",
             response_model=UserResponse)
 async def change_user(creds: UserUpdate,
                 current_user : CurrentUser,
-                db: DBSession) -> UserResponse:
-    return await users.change_user(creds, current_user, db)
+                user_service: UserServiceDep) -> UserResponse:
+    return await user_service.change_user(creds, current_user)
 
 @router.delete("/users",
                response_model=dict)
 async def delete_user(current_user : CurrentUser,
-                db: DBSession) -> dict:
-    return await users.delete_user(current_user, db)
+                user_service: UserServiceDep) -> dict:
+    return await user_service.delete_user(current_user)
