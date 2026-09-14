@@ -68,7 +68,7 @@ class PostService:
         new_post = await self.post_repository.create_post(newpost, current_user)
         await self.db.commit()
         await self.db.refresh(new_post)
-        post_to_return = await self.post_repository.get_post(new_post.id)
+        post_to_return = await self.post_repository.get_post_with_opt(new_post.id)
 
         return self.post_returning(post_to_return)
 
@@ -147,7 +147,7 @@ class PostService:
         return self.posts_returning(posts)
 
     async def get_post_id(self, id: int) -> PostResponse:
-        post = await self.post_repository.get_post(id)
+        post = await self.post_repository.get_post_with_opt(id)
         if not post:
             raise PostNotFound
         return self.post_returning(post)

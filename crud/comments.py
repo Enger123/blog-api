@@ -62,7 +62,6 @@ class CommentService:
         )
         await self.db.commit()
         await self.db.refresh(comment)
-        print(comment)
         com = await self.comment_repository.get_comment_with_options()
         return self.com_returning(com)
 

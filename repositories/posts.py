@@ -1,12 +1,9 @@
 from datetime import datetime
-
-from fastapi import UploadFile
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 from models.posts_model import Post
 from schemas.post import PostCreate
-from sqlalchemy.orm import Session
 from typing import List
 from schemas.post import PostResponse
 from models import Tag, TagPost
@@ -34,7 +31,7 @@ class PostRepository:
     def __init__(self, db: AsyncSession):
         self.db = db
 
-    async def get_posts_tag(self, tag: str) -> List[PostResponse]:
+    async def get_posts_tag(self, tag: str):
         posts_query = await self.db.execute(select(Post)
         .join(TagPost)
         .join(Tag)
@@ -62,7 +59,7 @@ class PostRepository:
         )
         return query.scalars().all()
 
-    async def get_post(self, post_id: int):
+    async def get_post_with_opt(self, post_id: int):
         query = await self.db.execute(
             select(Post).where(Post.id==post_id)
         .options(*POST_ROAD_OPTIONS)
@@ -138,7 +135,7 @@ class PostRepository:
         )
         return user.scalars().first()
 
-    async def get_post_for_coms(self, post_id: int):
+    async def get_post(self, post_id: int):
         return (await self.db.execute(select(Post)
                                 .where(Post.id==post_id)
                                 )).scalars().first()
