@@ -137,3 +137,8 @@ class PostRepository:
         )
         )
         return user.scalars().first()
+
+    async def get_post_for_coms(self, post_id: int):
+        return (await self.db.execute(select(Post)
+                                .where(Post.id==post_id)
+                                )).scalars().first()

@@ -8,6 +8,7 @@ from models import User
 from app.database import get_db
 from crud.users import UserService
 from crud.likes import LikeService
+from crud.comments import CommentService
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 PaginationDep = Annotated[PaginationParams, Depends(PaginationParams)]
@@ -22,6 +23,10 @@ def get_user_service(db: DBSession):
 def get_like_service(db: DBSession):
     return LikeService(db)
 
+def get_comment_service(db: DBSession):
+    return CommentService(db)
+
 PostServiceDep = Annotated[PostService, Depends(get_post_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 LikeServiceDep = Annotated[LikeService, Depends(get_like_service)]
+CommentServiceDep = Annotated[CommentService, Depends(get_comment_service)]
