@@ -5,7 +5,7 @@ from fastapi.params import Depends
 from schemas.post import PaginationParams
 from models import User
 from app.database import get_db
-from crud import PostService, TagService, UserService, CommentService, LikeService
+from services import PostService, TagService, UserService, CommentService, LikeService, StatService
 
 CurrentUser = Annotated[User, Depends(get_current_user)]
 PaginationDep = Annotated[PaginationParams, Depends(PaginationParams)]
@@ -26,8 +26,13 @@ def get_comment_service(db: DBSession):
 def get_tag_service(db: DBSession):
     return TagService(db)
 
+def get_stat_service(db: DBSession):
+    return StatService(db)
+
+
 PostServiceDep = Annotated[PostService, Depends(get_post_service)]
 UserServiceDep = Annotated[UserService, Depends(get_user_service)]
 LikeServiceDep = Annotated[LikeService, Depends(get_like_service)]
 CommentServiceDep = Annotated[CommentService, Depends(get_comment_service)]
 TagServiceDep = Annotated[TagService, Depends(get_tag_service)]
+StatServiceDep = Annotated[StatService, Depends(get_stat_service)]

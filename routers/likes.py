@@ -1,6 +1,6 @@
 from fastapi import APIRouter
 from app.dependencies import CurrentUser, LikeServiceDep
-from crud import likes
+
 router = APIRouter()
 
 @router.get("/likes/{username}", tags=['Likes'])

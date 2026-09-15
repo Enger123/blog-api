@@ -1,6 +1,5 @@
 from fastapi import APIRouter, BackgroundTasks, UploadFile, File
 from schemas.post import PostResponse, PostCreate, PostUpdate
-from crud import posts
 from typing import List
 from app.dependencies import CurrentUser, PostServiceDep, PaginationDep
 from app.background_tasks import add_post_log, delete_post_log, change_post_log

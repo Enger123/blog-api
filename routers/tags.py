@@ -1,6 +1,5 @@
 from fastapi import APIRouter
 from app.dependencies import CurrentUser, TagServiceDep
-from crud import tags
 from schemas.tag_post import TagPostResponse
 from schemas.tags import TagCreate, TagResponse
 from typing import List

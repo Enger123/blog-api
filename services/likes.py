@@ -1,13 +1,13 @@
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 
-# from crud.posts import POST_ROAD_OPTIONS, post_returning
+# from services.posts import POST_ROAD_OPTIONS, post_returning
 from schemas.post import PostResponse, AuthorSchema, PostInfo
 from models import Like, Post, User
 from schemas.user import UserResponse
 from schemas.like import LikeResponse
 from repositories import LikeRepository, PostRepository
-from crud.posts import PostService
+from services.posts import PostService
 
 class LikeService:
     def __init__(self, db: AsyncSession):

@@ -7,7 +7,7 @@ from repositories import TagRepository, PostRepository
 from schemas.tags import TagResponse, TagCreate
 from typing import List
 from schemas.tag_post import TagPostResponse
-from crud.posts import post_404
+from services.posts import post_404
 from sqlalchemy import select
 
 class TagService:
@@ -50,7 +50,7 @@ class TagService:
                                name=tag.name)
 
     async def get_tags(self) -> List[TagResponse]:
-        tags = self.tag_repository.get_tags()
+        tags = await self.tag_repository.get_tags()
         if not tags:
             raise HTTPException(status_code=404, detail='Tags not found')
         return self.tags_returning(tags)
@@ -58,7 +58,7 @@ class TagService:
     async def get_post_tags(self, post_id: int):
         post = await self.post_repository.get_post(post_id)
         post_404(post)
-        tag_post = self.tag_repository.get_post_tags(post_id)
+        tag_post = await self.tag_repository.get_post_tags(post_id)
         self.tag_post_404(tag_post)
         return self.tag_post_returning(tag_post)
 
@@ -76,7 +76,7 @@ class TagService:
         tag_post = await self.tag_repository.get_tag_post(post_id, tag_id)
         if tag_post:
             raise HTTPException(status_code=400, detail='There is the same tag in this post')
-        new_tag_post = await self.tag_repository.add_tag_in_post(post_id, tag_id)
+        new_tag_post = self.tag_repository.add_tag_in_post(post_id, tag_id)
         await self.db.commit()
         await self.db.refresh(tag)
         await self.db.refresh(post)
