@@ -1,7 +1,7 @@
 from fastapi import HTTPException, UploadFile
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.sql.functions import current_user
-# from cache.redis_caching import RedisCached
+from cache.redis_caching import RedisCachedBackend
 from models import TagPost, Post, User, Tag
 from repositories.posts import PostRepository
 from schemas.post import PostCreate, PostResponse, PostUpdate, AuthorSchema
@@ -12,7 +12,7 @@ from pathlib import Path
 import aiofiles
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload, Session
-
+from app.settings import get_settings
 
 project_dir = Path(__file__).parent.parent
 uploads_dir = project_dir / 'uploads'
@@ -20,6 +20,7 @@ uploads_dir.mkdir(exist_ok=True)
 posts_dir = uploads_dir / 'posts'
 posts_dir.mkdir(exist_ok=True)
 
+settings = get_settings()
 
 def post_404(post):
     if not post:
@@ -29,6 +30,8 @@ class PostService:
     def __init__(self, db: AsyncSession):
         self.db = db
         self.post_repository = PostRepository(db)
+        self.cache = RedisCachedBackend()
+        self.posts_key = settings.posts_key
 
     def post_returning(self, post):
         return PostResponse(id=post.id,
@@ -123,7 +126,8 @@ class PostService:
 
     async def get_posts_without_settings(self):
         posts = await self.post_repository.get_posts_without_setts()
-        return self.posts_returning(posts)
+        posts_to_return = self.posts_returning(posts)
+        return posts_to_return
 
     async def get_posts(self,
                   skip: int = 0,

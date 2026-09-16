@@ -5,6 +5,7 @@ from app.dependencies import CurrentUser, PostServiceDep, PaginationDep
 from app.background_tasks import add_post_log, delete_post_log, change_post_log
 import asyncio
 import time
+
 router = APIRouter()
 
 @router.get("/posts/tag/{tag}",

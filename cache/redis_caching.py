@@ -1,17 +1,20 @@
-# import json
-#
-# from redis import Redis
-#
-# class RedisCached:
-#     def __init__(self, ttl_seconds=3600):
-#         self.redis = Redis(host="localhost", port=53605, decode_responses=True)
-#         self.ttl_seconds = ttl_seconds
-#
-#     def set(self, key, value):
-#         self.redis.set(key, json.dumps(value), ex=self.ttl_seconds)
-#
-#     def get(self, key):
-#         return self.redis.get(key)
-#
-#     def delete(self, key):
-#         self.redis.delete(key)
+import json
+from redis import Redis
+
+class RedisCachedBackend:
+    def __init__(self):
+        self.redis = Redis(
+            host="localhost",
+            port=6378,
+            db=0,
+            decode_responses=True
+        )
+
+    def get_cache(self, key: str):
+        return self.redis.get(json.loads(key))
+
+    def set_cache(self, key: str, value) -> None:
+        self.redis.set(key, json.dumps(value), ex=3600)
+
+    def delete_cache(self, key: str):
+        self.redis.delete(key)
