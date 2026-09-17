@@ -4,8 +4,8 @@ from redis import Redis
 class RedisCachedBackend:
     def __init__(self, cache_ttl_seconds: int):
         self.redis = Redis(
-            host="localhost",
-            port=6378,
+            host="cache",
+            port=6379,
             db=0,
             decode_responses=True
         )

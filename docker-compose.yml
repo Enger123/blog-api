@@ -5,6 +5,7 @@ services:
       - "8080:8000"
     depends_on:
       - postgres
+      - cache
 
   postgres:
     image: postgres:16-alpine
@@ -16,6 +17,15 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+  cache:
+    image: redis:7.4-alpine
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+      - cache:/data
 
 volumes:
   postgres_data:
+  cache:
+    driver: local
