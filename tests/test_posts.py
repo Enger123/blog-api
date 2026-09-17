@@ -55,16 +55,16 @@ def test_my_posts(test_client: TestClient):
     assert response.status_code == 401
 
 def test_delete_posts(test_client: TestClient, token, test_post):
-    post_response = test_client.post("/posts",
-                                json={
-                                    'title': 'Тест Пост',
-                                    'content': 'Тест контент',
-                                },
-                                headers={'Authorization': f"Bearer {token}"}
-                                )
-    assert post_response.status_code == 200
-    post_body = post_response.json()
-    assert isinstance(post_body, dict)
+    # post_response = test_client.post("/posts",
+    #                             json={
+    #                                 'title': 'Тест Пост',
+    #                                 'content': 'Тест контент',
+    #                             },
+    #                             headers={'Authorization': f"Bearer {token}"}
+    #                             )
+    # assert post_response.status_code == 200
+    # post_body = post_response.json()
+    # assert isinstance(post_body, dict)
 
     delete_response = test_client.delete(f"/posts/{test_post['id']}", headers=
     {
