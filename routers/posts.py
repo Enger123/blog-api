@@ -21,7 +21,7 @@ async def add_post(newpost: PostCreate,
              current_user : CurrentUser,
              post_service: PostServiceDep,
              back_tasks: BackgroundTasks) -> PostResponse:
-    # back_tasks.add_task(add_post_log, newpost.title, current_user.username)
+    back_tasks.add_task(add_post_log, newpost.title, current_user.username)
     return await post_service.add_post(newpost, current_user)
 
 @router.post("/posts/{id}/image")
@@ -69,7 +69,7 @@ async def change_post(id: int,
                 current_user: CurrentUser,
                 post_service: PostServiceDep,
                 back_tasks: BackgroundTasks) -> PostResponse:
-    # back_tasks.add_task(change_post_log, id, current_user.username)
+    back_tasks.add_task(change_post_log, id, current_user.username)
     return await post_service.change_post(id, changed_post, current_user)
 
 @router.delete("/posts/{id}",
