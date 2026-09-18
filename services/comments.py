@@ -54,7 +54,7 @@ class CommentService:
                                id: int,
                                newcomment: CommentCreate,
                                current_user) -> CommentResponse:
-        post = await self.post_repository.get_post(id)
+        post = await self.post_repository.get_post_with_opt(id)
         if not post:
             raise HTTPException(status_code=404, detail='Post not found')
         comment = self.comment_repository.create_com_for_post(
