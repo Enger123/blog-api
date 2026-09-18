@@ -1,10 +1,11 @@
 import json
 from redis import Redis
+import os
 
 class RedisCachedBackend:
     def __init__(self, cache_ttl_seconds: int):
         self.redis = Redis(
-            host="localhost",
+            host=os.getenv("REDIS_HOST", "localhost"),
             port=6379,
             db=0,
             decode_responses=True

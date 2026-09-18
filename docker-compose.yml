@@ -3,6 +3,8 @@ services:
     build: .
     ports:
       - "8080:8000"
+    environment:
+      REDIS_HOST: cache
     depends_on:
       - postgres
       - cache
