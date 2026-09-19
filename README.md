@@ -35,5 +35,7 @@ Routes -> Services -> Repositories -> PostgreSQL
 
 Redis is used as a cache layer for frequently requested data.
 
+## Installation
+
 You can use docker compose up --build to run a project with Docker.
 The project will be launched on localhost:8080
