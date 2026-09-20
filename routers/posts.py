@@ -24,13 +24,15 @@ async def add_post(newpost: PostCreate,
     back_tasks.add_task(add_post_log, newpost.title, current_user.username)
     return await post_service.add_post(newpost, current_user)
 
-@router.post("/posts/{id}/image")
+@router.post("/posts/{id}/image",
+            tags=['Posts'])
 async def add_post_image(id: int, post_service: PostServiceDep,
                    current_user: CurrentUser,
                    file: UploadFile = File()):
     return await post_service.add_post_image(id, current_user, file)
 
-@router.delete("/posts/{id}/image")
+@router.delete("/posts/{id}/image",
+            tags=['Posts'])
 async def delete_post_image(id: int, post_service: PostServiceDep,
                    current_user: CurrentUser):
     return await post_service.delete_post_image(id, current_user)
@@ -45,7 +47,8 @@ async def get_posts(post_service: PostServiceDep, skip: int = 0,
               sort: str = 'asc') -> List[PostResponse]:
     return await post_service.get_posts(skip, limit, title, sort)
 
-@router.get("/all-posts")
+@router.get("/all-posts",
+            tags=['Posts'])
 async def posts_without_sets(post_service: PostServiceDep):
     return await post_service.get_posts_without_settings()
 
