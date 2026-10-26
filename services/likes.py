@@ -33,7 +33,7 @@ class LikeService:
         return self.likes_returning(likes)
 
     async def add_post_like(self, post_id: int, current_user):
-        post = self.post_repository.get_post(post_id)
+        post = await self.post_repository.get_post_with_opt(post_id)
         if not post:
             raise HTTPException(status_code=404, detail='Post not found')
 

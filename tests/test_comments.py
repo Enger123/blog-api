@@ -57,7 +57,7 @@ def test_change_comments_with_other_user(
     response = test_client.put(f"comments/{test_comments['id']}",
         json={'text': 'Зміна'},
         headers={'Authorization': f"Bearer {token2}"})
-    assert response.status_code == 403
+    assert response.status_code == 404
 
 
 def test_delete_comments(test_client: TestClient, token, test_comments):

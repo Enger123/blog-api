@@ -29,7 +29,7 @@ async def get_users_likedpost(title: str, user_service: UserServiceDep) -> List[
 
 @router.post("/users")
 async def add_user(user: UserCreate, user_service: UserServiceDep, back_tasks: BackgroundTasks):
-    # back_tasks.add_task(add_user_log, user.username)
+    back_tasks.add_task(add_user_log, user.username)
     return await user_service.add_user(user)
 
 @router.get("/me",

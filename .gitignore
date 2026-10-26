@@ -1,3 +1,10 @@
+<<<<<<< HEAD
 alembic/
 .env
 *-*.txt
+=======
+__pycache__/
+*.py[cod]
+.venv/
+.env
+>>>>>>> b5b5ef402fc1ed4e7afbc6851a26ed90154c0883

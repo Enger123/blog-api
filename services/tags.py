@@ -43,7 +43,7 @@ class TagService:
         return self.tags_returning(tags)
 
     async def create_tag(self, newtag: TagCreate):
-        tag = await self.tag_repository.create_tag(newtag)
+        tag = self.tag_repository.create_tag(newtag)
         await self.db.commit()
         await self.db.refresh(tag)
         return TagResponse(id=tag.id,

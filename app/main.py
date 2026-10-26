@@ -10,28 +10,27 @@ from routers.likes import router as likes_router
 from routers.tags import router as tags_router
 from routers.stats import router as stats_router
 from contextlib import asynccontextmanager
-# from app.middleware import my_middleware
+from app.middleware import my_middleware
 from fastapi.staticfiles import StaticFiles
 from pathlib import Path
 
 project_dir = Path(__file__).parent.parent
 uploads = project_dir / 'uploads'
 
-# @asynccontextmanager
-# async def lifespan(app: FastAPI):
-#     app.state.stats = {
-#         'requests': 0,
-#         'users': 0,
-#         'posts': 0,
-#         'tags': 0,
-#         'stats': 0,
-#         'likes': 0,
-#         'comments': 0
-#     }
-#     yield
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    app.state.stats = {
+        'requests': 0,
+        'users': 0,
+        'posts': 0,
+        'tags': 0,
+        'stats': 0,
+        'likes': 0,
+        'comments': 0
+    }
+    yield
 
-# app = FastAPI(lifespan=lifespan)
-app = FastAPI()
+app = FastAPI(lifespan=lifespan)
 
 app.mount("/uploads", StaticFiles(directory=uploads), name='uploads')
 
@@ -43,7 +42,7 @@ async def post_not_found(request, exc):
                                 'detail': str(exc)
                             })
 
-# app.middleware('http')(my_middleware)
+app.middleware('http')(my_middleware)
 
 app.include_router(users_router)
 app.include_router(posts_router)
