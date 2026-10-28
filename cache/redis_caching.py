@@ -5,6 +5,7 @@ import os
 class RedisCachedBackend:
     def __init__(self, cache_ttl_seconds: int):
         self.redis = Redis(
+            #коли запуститься через docker compose, то там вказано REDIS_HOST=..., і підставить, якшо локально запуск то автоматично localhost
             host=os.getenv("REDIS_HOST", "localhost"),
             port=6379,
             db=0,

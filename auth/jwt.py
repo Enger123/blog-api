@@ -10,8 +10,9 @@ from app.database import get_db
 
 from app.database import Session
 from models.user_model import User
+from core.config import settings
 
-SECRET_KEY = "b900c1c6c5c13943067ef462cb7ad4d43ce1146387f6d7fc6efbe4ee1ae5c4ab"
+SECRET_KEY=settings.SECRET_KEY
 ALGORITHM = 'HS256'
 ACCESS_TOKEN_EXPIRE_MINUTES = 60
 

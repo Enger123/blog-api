@@ -12,7 +12,7 @@ from pathlib import Path
 import aiofiles
 from sqlalchemy import select
 from sqlalchemy.orm import selectinload, Session
-from app.settings import get_settings
+from core.config import settings
 
 project_dir = Path(__file__).parent.parent
 uploads_dir = project_dir / 'uploads'
@@ -20,17 +20,18 @@ uploads_dir.mkdir(exist_ok=True)
 posts_dir = uploads_dir / 'posts'
 posts_dir.mkdir(exist_ok=True)
 
-settings = get_settings()
-
 def post_404(post):
     if not post:
         raise HTTPException(status_code=404, detail='Post/posts not found')
 
 class PostService:
+
+    POSTS_KEY = "cache:posts_list"
+
     def __init__(self, db: AsyncSession):
         self.db = db
         self.post_repository = PostRepository(db)
-        self.cache = RedisCachedBackend(settings.cache_ttl_seconds)
+        self.cache = RedisCachedBackend(settings.CACHE_TTL_SECONDS)
 
     def post_returning(self, post):
         return PostResponse(id=post.id,
@@ -67,12 +68,11 @@ class PostService:
         return self.posts_returning(posts)
 
     async def add_post(self, newpost: PostCreate, current_user) -> PostResponse:
-        self.cache.delete_cache(settings.posts_key)
         new_post = await self.post_repository.create_post(newpost, current_user)
         await self.db.commit()
         await self.db.refresh(new_post)
         post_to_return = await self.post_repository.get_post_with_opt(new_post.id)
-
+        self.cache.delete_cache(self.POSTS_KEY)
         return self.post_returning(post_to_return)
 
     async def add_post_image(self, id: int, current_user, file: UploadFile):
@@ -125,14 +125,14 @@ class PostService:
         return {'message': 'Image deleted'}
 
     async def get_posts_without_settings(self):
-        cache = self.cache.get_cache(settings.posts_key)
+        cache = self.cache.get_cache(self.POSTS_KEY)
         if cache is not None:
             return cache
 
         posts = await self.post_repository.get_posts_without_setts()
         posts_to_return = self.posts_returning(posts)
         data_in_cache = [post.model_dump(mode="json") for post in posts_to_return]
-        self.cache.set_cache(settings.posts_key, data_in_cache)
+        self.cache.set_cache(self.POSTS_KEY, data_in_cache)
         return posts_to_return
 
     async def get_posts(self,
@@ -165,7 +165,6 @@ class PostService:
     async def change_post(self, id: int,
                     changed_post: PostUpdate,
                     current_user) -> PostResponse:
-        self.cache.delete_cache(settings.posts_key)
         checked_post = await self.post_repository.get_post_with_userid(current_user, id)
         if not checked_post:
             raise HTTPException(status_code=404, detail='Post not found')
@@ -175,10 +174,10 @@ class PostService:
             checked_post.content = changed_post.content
         await self.db.commit()
         await self.db.refresh(checked_post)
+        self.cache.delete_cache(self.POSTS_KEY)
         return self.post_returning(checked_post)
 
     async def delete_post(self, id: int, current_user) -> dict:
-        self.cache.delete_cache(settings.posts_key)
         post = await self.post_repository.get_post_with_userid(current_user, id)
         if not post:
             raise HTTPException(status_code=404, detail='Post not found')
@@ -188,6 +187,7 @@ class PostService:
                 file_to_del.unlink()
         await self.post_repository.delete_post(post)
         await self.db.commit()
+        self.cache.delete_cache(self.POSTS_KEY)
         return {'message': 'deleted'}
 
     async def my_posts(self, current_user) -> List[PostResponse]:

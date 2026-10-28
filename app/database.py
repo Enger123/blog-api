@@ -2,13 +2,10 @@ from sqlalchemy.orm import Mapped, declarative_base, mapped_column
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
 from sqlalchemy.pool import NullPool
 import os
-
-DB_PASSWORD = os.getenv("POSTGRES_PASSWORD")
-DB_USER = os.getenv("POSTGRES_USER")
-DB_NAME = os.getenv("POSTGRES_DB")
+from core.config import settings
 
 db = create_async_engine(
-    f"postgresql+asyncpg://{DB_USER}:{DB_PASSWORD}@postgres:5432/{DB_NAME}"
+    settings.DATABASE_URL
     # , poolclass=NullPool
     )
 
